@@ -10,9 +10,14 @@
         .wadah-toko { width: 100%; max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         .kartu-produk { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fafafa; margin-top: 20px; text-align: left; overflow: hidden; }
         
-        /* DESAIN BARU UNTUK GALERI BANYAK MEDIA */
         .galeri-media { display: flex; overflow-x: auto; gap: 10px; margin-bottom: 15px; padding-bottom: 5px; scroll-snap-type: x mandatory; }
         .item-media { flex: 0 0 90%; height: 300px; object-fit: contain; border-radius: 5px; background-color: transparent; scroll-snap-align: center; }
+        
+        /* DESAIN TOMBOL PILIHAN VARIAN ALA TOKOPEDIA */
+        .pilihan-varian p { margin: 10px 0 5px 0; font-weight: bold; font-size: 14px; }
+        .wadah-tombol-varian { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
+        .tombol-varian { padding: 8px 12px; border: 1px solid #ccc; background: white; border-radius: 5px; cursor: pointer; font-size: 14px; color: #333; transition: 0.2s; }
+        .tombol-varian.aktif { border-color: #25d366; color: #25d366; background: #e8f9ef; font-weight: bold; }
         
         .harga { color: #2ecc71; font-size: 20px; font-weight: bold; margin: 5px 0 15px 0; }
         .tombol-beli { display: block; text-align: center; background-color: #25d366; color: white; padding: 12px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px; }
@@ -62,58 +67,92 @@
             data.forEach(barang => {
                 const hargaRupiah = new Intl.NumberFormat('id-ID').format(barang.harga);
 
+                // --- LOGIKA STOK ---
                 let tampilanStok = '';
                 const jumlahStok = parseInt(barang.stok || 0);
-
-                if (jumlahStok > 100) {
-                    tampilanStok = ''; 
-                } else if (jumlahStok >= 51 && jumlahStok <= 100) {
+                if (jumlahStok >= 51 && jumlahStok <= 100) {
                     tampilanStok = '<p style="color: #f39c12; font-size: 14px; font-weight: bold; margin: 0;">Stok: &lt; 100</p>'; 
                 } else if (jumlahStok <= 50) {
                     tampilanStok = `<p style="color: #e74c3c; font-size: 14px; font-weight: bold; margin: 0;">Sisa Stok: ${jumlahStok}</p>`;
                 }
 
-                // LOGIKA UNTUK MENAMPILKAN BANYAK FOTO & VIDEO
+                // --- LOGIKA SORTIR VIDEO KE DEPAN ---
                 let htmlMedia = '';
                 if (barang.foto_url) {
-                    // Memecah teks panjang berdasarkan tanda koma menjadi daftar link
                     const daftarLink = barang.foto_url.split(',');
                     
-                    htmlMedia = '<div class="galeri-media">';
+                    // Mengurutkan agar video selalu ada di baris pertama
+                    daftarLink.sort((a, b) => {
+                        const isVideoA = a.toLowerCase().match(/\.(mp4|mov|webm)$/i);
+                        const isVideoB = b.toLowerCase().match(/\.(mp4|mov|webm)$/i);
+                        if (isVideoA && !isVideoB) return -1; // Geser A ke kiri (depan)
+                        if (!isVideoA && isVideoB) return 1;  // Geser B ke kiri (depan)
+                        return 0; // Tetap pada urutan
+                    });
                     
+                    htmlMedia = '<div class="galeri-media">';
                     daftarLink.forEach(link => {
-                        const linkKecil = link.toLowerCase();
-                        // Jika link berakhiran video, tampilkan pemutar video
-                        if (linkKecil.includes('.mp4') || linkKecil.includes('.mov') || linkKecil.includes('.webm')) {
+                        if (link.toLowerCase().match(/\.(mp4|mov|webm)$/i)) {
                             htmlMedia += `<video src="${link}" class="item-media" controls preload="metadata"></video>`;
                         } else {
-                            // Jika bukan, tampilkan sebagai foto biasa
                             htmlMedia += `<img src="${link}" class="item-media" alt="${barang.nama_barang}">`;
                         }
                     });
-                    
                     htmlMedia += '</div>';
-                } else {
-                    htmlMedia = `<div class="foto-produk" style="display:flex; align-items:center; justify-content:center; color:#999; height:300px; border: 1px solid #ddd; border-radius:5px; margin-bottom:15px;">Tidak ada media</div>`;
                 }
 
-                const pesanWa = `Halo, saya tertarik membeli ${barang.nama_barang} seharga Rp${hargaRupiah}.`;
-                const linkWa = `https://wa.me/${NOMOR_WA}?text=${encodeURIComponent(pesanWa)}`;
+                // --- LOGIKA MENAMPILKAN TOMBOL VARIAN ---
+                let htmlVarian = '';
+                if (barang.varian) {
+                    // Memecah teks "30ml, 50ml" menjadi kotak tombol
+                    const listVarian = barang.varian.split(',').map(v => v.trim()).filter(v => v !== '');
+                    if (listVarian.length > 0) {
+                        htmlVarian += `<div class="pilihan-varian"><p>Pilih Varian:</p><div class="wadah-tombol-varian">`;
+                        listVarian.forEach(v => {
+                            htmlVarian += `<button class="tombol-varian" onclick="pilihVarian(this, '${barang.id}', '${barang.nama_barang}', '${hargaRupiah}', '${v}')">${v}</button>`;
+                        });
+                        htmlVarian += `</div></div>`;
+                    }
+                }
+
+                const pesanWaAwal = `Halo, saya tertarik membeli ${barang.nama_barang} seharga Rp${hargaRupiah}.`;
+                const linkWaAwal = `https://wa.me/${NOMOR_WA}?text=${encodeURIComponent(pesanWaAwal)}`;
                 
                 const elemenProduk = `
                     <div class="kartu-produk">
                         ${htmlMedia}
                         <h2 style="margin-top: 0; margin-bottom: 5px;">${barang.nama_barang}</h2>
                         <p style="margin-top: 0; font-size: 14px; color: #555; white-space: pre-wrap; margin-bottom: 10px;">${barang.deskripsi}</p>
+                        
+                        ${htmlVarian}
                         ${tampilanStok}
+                        
                         <p class="harga">Rp ${hargaRupiah}</p>
-                        <a href="${linkWa}" class="tombol-beli" target="_blank">Beli via WhatsApp</a>
+                        <!-- ID spesifik ditambahkan ke tombol WA agar JS bisa mengubah link-nya -->
+                        <a href="${linkWaAwal}" id="wa-${barang.id}" class="tombol-beli" target="_blank">Beli via WhatsApp</a>
                     </div>
                 `;
                 
                 wadahProduk.innerHTML += elemenProduk;
             });
         }
+
+        // --- FUNGSI MENGKLIK TOMBOL VARIAN ---
+        function pilihVarian(elemenTombol, idProduk, namaBarang, hargaRupiah, namaVarian) {
+            // Menghapus efek warna dari semua tombol varian di produk ini
+            const wadah = elemenTombol.parentElement;
+            const semuaTombol = wadah.querySelectorAll('.tombol-varian');
+            semuaTombol.forEach(btn => btn.classList.remove('aktif'));
+            
+            // Memberikan efek warna ke tombol yang baru diklik
+            elemenTombol.classList.add('aktif');
+
+            // Mengubah teks pesanan WhatsApp agar sesuai dengan varian yang dipilih
+            const tombolWa = document.getElementById(`wa-${idProduk}`);
+            const pesanWaBaru = `Halo, saya tertarik membeli ${namaBarang} (Varian: ${namaVarian}) seharga Rp${hargaRupiah}.`;
+            tombolWa.href = `https://wa.me/${NOMOR_WA}?text=${encodeURIComponent(pesanWaBaru)}`;
+        }
+
         tampilkanProduk();
     </script>
 </body>

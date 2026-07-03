@@ -14,8 +14,6 @@
         .tombol-simpan { display: block; width: 100%; background-color: #007bff; color: white; padding: 14px; border: none; border-radius: 5px; font-weight: bold; font-size: 16px; margin-top: 25px; cursor: pointer; }
         .tombol-simpan:hover { background-color: #0056b3; }
         .kembali { display: block; text-align: center; margin-top: 20px; color: #666; text-decoration: none; font-size: 14px; }
-        
-        /* DESAIN TAMBAHAN UNTUK PREVIEW FILE */
         .info-ukuran { font-size: 12px; color: #e74c3c; margin-bottom: 10px; display: block; font-style: italic; }
         #preview-file { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
         .item-file { display: flex; justify-content: space-between; align-items: center; background: #e9ecef; padding: 10px; border-radius: 5px; font-size: 14px; border: 1px solid #ddd; }
@@ -30,18 +28,17 @@
     <div class="wadah-form">
         <h2>Pajang Barang Daganganmu</h2>
         
-        <!-- Judul disederhanakan dan ditambah batasan ukuran -->
         <label>Foto & Video Barang</label>
         <span class="info-ukuran">*Maksimal 50 MB per file.</span>
-        
-        <!-- Setiap kali file dipilih, fungsi tambahFile() akan berjalan -->
         <input type="file" accept="image/*, video/*" id="input-file" multiple onchange="tambahFile()">
-        
-        <!-- Keranjang untuk menampilkan file yang dipilih sebelum disimpan -->
         <div id="preview-file"></div>
 
         <label>Nama Barang</label>
         <input type="text" id="nama" placeholder="Contoh: Minyak Kemiri Murni">
+
+        <!-- KOTAK BARU UNTUK VARIAN -->
+        <label>Pilihan Varian / Ukuran (Pisahkan dengan koma)</label>
+        <input type="text" id="varian" placeholder="Contoh: 30ml, 50ml, 100ml">
 
         <label>Harga Barang (Rp)</label>
         <input type="number" id="harga" placeholder="Contoh: 50000">
@@ -62,37 +59,30 @@
         const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
         const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
 
-        // Keranjang sementara untuk menampung file
         let daftarFile = [];
 
-        // 1. FUNGSI MEMASUKKAN FILE KE KERANJANG
         function tambahFile() {
             const input = document.getElementById('input-file');
             const filesBaru = input.files;
-            const maxUkuran = 50 * 1024 * 1024; // Limit 50 MB (dalam Byte)
+            const maxUkuran = 50 * 1024 * 1024; 
 
             for(let i = 0; i < filesBaru.length; i++) {
-                // Memfilter file yang ukurannya melebihi 50MB
                 if (filesBaru[i].size > maxUkuran) {
                     alert(`Gagal! File "${filesBaru[i].name}" berukuran melebihi 50 MB.`);
                 } else {
-                    daftarFile.push(filesBaru[i]); // Masukkan ke keranjang jika aman
+                    daftarFile.push(filesBaru[i]); 
                 }
             }
-            
-            input.value = ""; // Mengosongkan tombol choose file agar bisa memilih berulang kali
+            input.value = ""; 
             tampilkanPreview();
         }
 
-        // 2. FUNGSI MENAMPILKAN KERANJANG KE LAYAR
         function tampilkanPreview() {
             const wadahPreview = document.getElementById('preview-file');
-            wadahPreview.innerHTML = ""; // Bersihkan tampilan sebelumnya
+            wadahPreview.innerHTML = ""; 
 
             daftarFile.forEach((file, index) => {
-                // Menghitung ukuran file menjadi satuan MB
                 const ukuranMB = (file.size / (1024 * 1024)).toFixed(1);
-                
                 const divItem = document.createElement('div');
                 divItem.className = 'item-file';
                 divItem.innerHTML = `
@@ -103,23 +93,21 @@
             });
         }
 
-        // 3. FUNGSI MENGHAPUS 1 FILE DARI KERANJANG
         function hapusFile(index) {
-            daftarFile.splice(index, 1); // Buang file dari keranjang berdasarkan urutannya
-            tampilkanPreview(); // Perbarui tampilan keranjang di layar
+            daftarFile.splice(index, 1); 
+            tampilkanPreview(); 
         }
 
-        // 4. FUNGSI MENGIRIM DATA KE SUPABASE
         async function simpanData() {
             const namaBarang = document.getElementById('nama').value;
+            const varianBarang = document.getElementById('varian').value; // Mengambil data varian
             const hargaBarang = document.getElementById('harga').value;
             const stokBarang = document.getElementById('stok').value;
             const deskripsiBarang = document.getElementById('deskripsi').value;
             const tombol = document.getElementById('tombol-simpan');
 
-            // Cek apakah keranjang file kosong
             if(namaBarang === "" || hargaBarang === "" || stokBarang === "" || deskripsiBarang === "" || daftarFile.length === 0) {
-                alert("Tolong isi semua data dan pilih minimal 1 foto/video!");
+                alert("Tolong isi semua data (termasuk minimal 1 media)!");
                 return;
             }
 
@@ -128,7 +116,6 @@
 
             let kumpulanLink = [];
 
-            // Memproses file dari keranjang satu per satu
             for(let i = 0; i < daftarFile.length; i++) {
                 let file = daftarFile[i];
                 let namaAman = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
@@ -148,12 +135,12 @@
             }
 
             const urlGabungan = kumpulanLink.join(',');
-
             tombol.innerText = "Menyimpan data ke etalase...";
 
             const { data, error } = await dbToko.from('produk').insert([
                 { 
                     nama_barang: namaBarang, 
+                    varian: varianBarang, // Memasukkan varian ke database
                     harga: hargaBarang, 
                     stok: stokBarang, 
                     deskripsi: deskripsiBarang,
@@ -165,9 +152,8 @@
                 alert("Data gagal disimpan: " + error.message);
             } else {
                 alert("Berhasil! Barang dan media sudah masuk etalase.");
-                
-                // Mengosongkan form dan keranjang setelah sukses
                 document.getElementById('nama').value = "";
+                document.getElementById('varian').value = "";
                 document.getElementById('harga').value = "";
                 document.getElementById('stok').value = "";
                 document.getElementById('deskripsi').value = "";
