@@ -21,9 +21,7 @@
 
     <div class="wadah-form">
         <h2>Pajang Barang Daganganmu</h2>
-        <p style="text-align: center; font-size: 14px; color: #555;">Isi data di bawah untuk menampilkan produk di Made in Indonesia.</p>
-
-        <!-- Kotak foto sekarang sudah aktif -->
+        
         <label>Foto Barang</label>
         <input type="file" accept="image/*" id="foto">
 
@@ -32,6 +30,10 @@
 
         <label>Harga Barang (Rp)</label>
         <input type="number" id="harga" placeholder="Contoh: 50000">
+
+        <!-- KOTAK ISIAN BARU UNTUK STOK -->
+        <label>Jumlah Stok</label>
+        <input type="number" id="stok" placeholder="Contoh: 150">
 
         <label>Deskripsi Singkat</label>
         <textarea id="deskripsi" rows="4" placeholder="Ceritakan keunggulan produkmu di sini..."></textarea>
@@ -42,7 +44,6 @@
     </div>
 
     <script>
-        // MASUKKAN KUNCI KAMU LAGI DI SINI
         const URL_SUPABASE = 'https://obdmfjjckdhzqbvhpung.supabase.co';
         const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
 
@@ -51,26 +52,20 @@
         async function simpanData() {
             const namaBarang = document.getElementById('nama').value;
             const hargaBarang = document.getElementById('harga').value;
+            const stokBarang = document.getElementById('stok').value; // Ambil nilai stok
             const deskripsiBarang = document.getElementById('deskripsi').value;
-            const fileFoto = document.getElementById('foto').files[0]; // Mengambil file foto
+            const fileFoto = document.getElementById('foto').files[0];
             const tombol = document.getElementById('tombol-simpan');
 
-            // Cek apakah data lengkap
-            if(namaBarang === "" || hargaBarang === "" || deskripsiBarang === "" || !fileFoto) {
-                alert("Tolong isi semua data dan pilih foto barangnya ya!");
+            if(namaBarang === "" || hargaBarang === "" || stokBarang === "" || deskripsiBarang === "" || !fileFoto) {
+                alert("Tolong isi semua data, termasuk stok, dan pilih foto barangnya!");
                 return;
             }
 
             tombol.innerText = "Mengunggah foto...";
 
-            // 1. PROSES UPLOAD FOTO KE STORAGE
-            // Kita beri nama file unik menggunakan waktu agar tidak tertukar jika namanya sama
             const namaFileUnik = Date.now() + "_" + fileFoto.name; 
-            
-            const { data: dataFoto, error: errorFoto } = await dbToko
-                .storage
-                .from('foto-barang')
-                .upload(namaFileUnik, fileFoto);
+            const { data: dataFoto, error: errorFoto } = await dbToko.storage.from('foto-barang').upload(namaFileUnik, fileFoto);
 
             if (errorFoto) {
                 alert("Gagal mengunggah foto: " + errorFoto.message);
@@ -78,40 +73,33 @@
                 return;
             }
 
-            // 2. MENDAPATKAN LINK (URL) FOTO YANG SUDAH DIUPLOAD
-            const { data: linkFoto } = dbToko
-                .storage
-                .from('foto-barang')
-                .getPublicUrl(namaFileUnik);
-            
+            const { data: linkFoto } = dbToko.storage.from('foto-barang').getPublicUrl(namaFileUnik);
             const urlFotoBarang = linkFoto.publicUrl;
 
             tombol.innerText = "Menyimpan data...";
 
-            // 3. MENYIMPAN TEKS DAN LINK FOTO KE DATABASE
-            const { data, error } = await dbToko
-                .from('produk')
-                .insert([
-                    { 
-                        nama_barang: namaBarang, 
-                        harga: hargaBarang, 
-                        deskripsi: deskripsiBarang,
-                        foto_url: urlFotoBarang // Link foto dimasukkan ke tabel
-                    }
-                ]);
+            // Menyimpan semua data termasuk stok
+            const { data, error } = await dbToko.from('produk').insert([
+                { 
+                    nama_barang: namaBarang, 
+                    harga: hargaBarang, 
+                    stok: stokBarang, 
+                    deskripsi: deskripsiBarang,
+                    foto_url: urlFotoBarang 
+                }
+            ]);
 
             if (error) {
-                alert("Yah, data gagal disimpan: " + error.message);
-                tombol.innerText = "Simpan Barang & Foto";
+                alert("Data gagal disimpan: " + error.message);
             } else {
-                alert("Berhasil! Barang dan foto sudah masuk ke etalase.");
-                // Mengosongkan form
+                alert("Berhasil! Barang sudah masuk etalase.");
                 document.getElementById('nama').value = "";
                 document.getElementById('harga').value = "";
+                document.getElementById('stok').value = "";
                 document.getElementById('deskripsi').value = "";
                 document.getElementById('foto').value = "";
-                tombol.innerText = "Simpan Barang & Foto";
             }
+            tombol.innerText = "Simpan Barang & Foto";
         }
     </script>
 </body>
