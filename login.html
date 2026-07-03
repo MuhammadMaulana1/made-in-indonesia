@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masuk Akun Penjual - Made in Indonesia</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 15px; }
+        .wadah-auth { width: 100%; max-width: 400px; margin: 50px auto auto auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-top: 0; }
+        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; }
+        input[type="email"], input[type="password"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; margin-bottom: 10px; }
+        .tombol-grup { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 5px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .btn-login { background-color: #25d366; color: white; }
+        .btn-login:hover { background-color: #128c7e; }
+        .btn-daftar { background-color: white; color: #007bff; border: 2px solid #007bff; }
+        .btn-daftar:hover { background-color: #e6f0fa; }
+        .kembali { display: block; text-align: center; margin-top: 20px; color: #666; text-decoration: none; font-size: 14px; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="wadah-auth">
+        <h2>Mulai Berjualan</h2>
+        <p style="text-align: center; font-size: 14px; color: #666; margin-bottom: 20px;">Silakan masuk atau buat akun tokomu terlebih dahulu.</p>
+
+        <label>Email Toko / Penjual</label>
+        <input type="email" id="email" placeholder="Contoh: toko.maju@email.com">
+
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Minimal 6 karakter">
+
+        <div class="tombol-grup">
+            <button class="btn btn-login" id="btn-masuk" onclick="prosesMasuk()">Masuk Aplikasi</button>
+            <button class="btn btn-daftar" id="btn-daftar" onclick="prosesDaftar()">Daftar Akun Baru</button>
+        </div>
+
+        <a href="index.html" class="kembali">Lihat Etalase Toko</a>
+    </div>
+
+    <script>
+        const URL_SUPABASE = 'https://obdmfjjckdhzqbvhpung.supabase.co';
+        const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
+        const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
+
+        // 1. PROSES PENDAFTARAN AKUN BARU
+        async function prosesDaftar() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const tombol = document.getElementById('btn-daftar');
+
+            if (email === "" || password === "") {
+                alert("Email dan password harus diisi!");
+                return;
+            }
+
+            tombol.innerText = "Mendaftarkan...";
+            
+            const { data, error } = await dbToko.auth.signUp({
+                email: email,
+                password: password,
+            });
+
+            if (error) {
+                alert("Gagal mendaftar: " + error.message);
+            } else {
+                alert("Pendaftaran Berhasil! Akun tokomu sudah aktif. Sekarang silakan klik 'Masuk Aplikasi'.");
+            }
+            tombol.innerText = "Daftar Akun Baru";
+        }
+
+        // 2. PROSES MASUK / LOGIN
+        async function prosesMasuk() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const tombol = document.getElementById('btn-masuk');
+
+            if (email === "" || password === "") {
+                alert("Email dan password harus diisi!");
+                return;
+            }
+
+            tombol.innerText = "Memeriksa...";
+
+            const { data, error } = await dbToko.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
+
+            if (error) {
+                alert("Gagal Masuk: " + error.message);
+            } else {
+                alert("Selamat Datang Kembali! Kamu akan diarahkan ke halaman upload barang.");
+                // Setelah login sukses, lempar penjual ke halaman tambah produk
+                window.location.href = "tambah-produk.html";
+            }
+            tombol.innerText = "Masuk Aplikasi";
+        }
+    </script>
+</body>
+</html>
