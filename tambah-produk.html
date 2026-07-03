@@ -22,8 +22,9 @@
     <div class="wadah-form">
         <h2>Pajang Barang Daganganmu</h2>
         
-        <label>Foto Barang</label>
-        <input type="file" accept="image/*" id="foto">
+        <!-- KOTAK UPLOAD DIUBAH: Bisa video & foto, dan bisa pilih banyak (multiple) -->
+        <label>Foto & Video Barang (Bisa pilih lebih dari satu)</label>
+        <input type="file" accept="image/*, video/*" id="foto" multiple>
 
         <label>Nama Barang</label>
         <input type="text" id="nama" placeholder="Contoh: Minyak Kemiri Murni">
@@ -31,14 +32,13 @@
         <label>Harga Barang (Rp)</label>
         <input type="number" id="harga" placeholder="Contoh: 50000">
 
-        <!-- KOTAK ISIAN BARU UNTUK STOK -->
         <label>Jumlah Stok</label>
         <input type="number" id="stok" placeholder="Contoh: 150">
 
         <label>Deskripsi Singkat</label>
         <textarea id="deskripsi" rows="4" placeholder="Ceritakan keunggulan produkmu di sini..."></textarea>
 
-        <button id="tombol-simpan" class="tombol-simpan" onclick="simpanData()">Simpan Barang & Foto</button>
+        <button id="tombol-simpan" class="tombol-simpan" onclick="simpanData()">Simpan Barang & Media</button>
 
         <a href="index.html" class="kembali">Kembali ke Halaman Utama</a>
     </div>
@@ -52,54 +52,72 @@
         async function simpanData() {
             const namaBarang = document.getElementById('nama').value;
             const hargaBarang = document.getElementById('harga').value;
-            const stokBarang = document.getElementById('stok').value; // Ambil nilai stok
+            const stokBarang = document.getElementById('stok').value;
             const deskripsiBarang = document.getElementById('deskripsi').value;
-            const fileFoto = document.getElementById('foto').files[0];
+            const filesMedia = document.getElementById('foto').files; // Menangkap semua file yang dipilih
             const tombol = document.getElementById('tombol-simpan');
 
-            if(namaBarang === "" || hargaBarang === "" || stokBarang === "" || deskripsiBarang === "" || !fileFoto) {
-                alert("Tolong isi semua data, termasuk stok, dan pilih foto barangnya!");
+            if(namaBarang === "" || hargaBarang === "" || stokBarang === "" || deskripsiBarang === "" || filesMedia.length === 0) {
+                alert("Tolong isi semua data dan pilih minimal 1 foto/video!");
                 return;
             }
 
-            tombol.innerText = "Mengunggah foto...";
+            tombol.innerText = "Mengunggah media (Tunggu sebentar)...";
+            tombol.disabled = true;
 
-            const namaFileUnik = Date.now() + "_" + fileFoto.name; 
-            const { data: dataFoto, error: errorFoto } = await dbToko.storage.from('foto-barang').upload(namaFileUnik, fileFoto);
+            let kumpulanLink = []; // Tempat penampungan link foto/video
 
-            if (errorFoto) {
-                alert("Gagal mengunggah foto: " + errorFoto.message);
-                tombol.innerText = "Simpan Barang & Foto";
-                return;
+            // Memproses file satu per satu
+            for(let i = 0; i < filesMedia.length; i++) {
+                let file = filesMedia[i];
+                
+                // Membersihkan nama file agar tidak ditolak sistem
+                let namaAman = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
+                let namaFileUnik = Date.now() + "_" + i + "_" + namaAman; 
+                
+                // Mengunggah ke Supabase Storage
+                const { data: dataFoto, error: errorFoto } = await dbToko.storage.from('foto-barang').upload(namaFileUnik, file);
+
+                if (errorFoto) {
+                    alert("Gagal mengunggah file ke-" + (i+1) + ": " + errorFoto.message);
+                    tombol.innerText = "Simpan Barang & Media";
+                    tombol.disabled = false;
+                    return;
+                }
+
+                // Mengambil link publiknya
+                const { data: linkMedia } = dbToko.storage.from('foto-barang').getPublicUrl(namaFileUnik);
+                kumpulanLink.push(linkMedia.publicUrl);
             }
 
-            const { data: linkFoto } = dbToko.storage.from('foto-barang').getPublicUrl(namaFileUnik);
-            const urlFotoBarang = linkFoto.publicUrl;
+            // Menggabungkan semua link dengan tanda koma
+            const urlGabungan = kumpulanLink.join(',');
 
-            tombol.innerText = "Menyimpan data...";
+            tombol.innerText = "Menyimpan data ke etalase...";
 
-            // Menyimpan semua data termasuk stok
+            // Menyimpan semua data termasuk link gabungan tadi
             const { data, error } = await dbToko.from('produk').insert([
                 { 
                     nama_barang: namaBarang, 
                     harga: hargaBarang, 
                     stok: stokBarang, 
                     deskripsi: deskripsiBarang,
-                    foto_url: urlFotoBarang 
+                    foto_url: urlGabungan // Teks panjang berisi banyak link masuk ke sini
                 }
             ]);
 
             if (error) {
                 alert("Data gagal disimpan: " + error.message);
             } else {
-                alert("Berhasil! Barang sudah masuk etalase.");
+                alert("Berhasil! Barang dan media sudah masuk etalase.");
                 document.getElementById('nama').value = "";
                 document.getElementById('harga').value = "";
                 document.getElementById('stok').value = "";
                 document.getElementById('deskripsi').value = "";
                 document.getElementById('foto').value = "";
             }
-            tombol.innerText = "Simpan Barang & Foto";
+            tombol.innerText = "Simpan Barang & Media";
+            tombol.disabled = false;
         }
     </script>
 </body>

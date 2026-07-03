@@ -8,8 +8,12 @@
         * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 15px; text-align: center; }
         .wadah-toko { width: 100%; max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .kartu-produk { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fafafa; margin-top: 20px; text-align: left; }
-        .foto-produk { width: 100%; height: 300px; object-fit: contain; border-radius: 5px; margin-bottom: 10px; background-color: transparent; }
+        .kartu-produk { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fafafa; margin-top: 20px; text-align: left; overflow: hidden; }
+        
+        /* DESAIN BARU UNTUK GALERI BANYAK MEDIA */
+        .galeri-media { display: flex; overflow-x: auto; gap: 10px; margin-bottom: 15px; padding-bottom: 5px; scroll-snap-type: x mandatory; }
+        .item-media { flex: 0 0 90%; height: 300px; object-fit: contain; border-radius: 5px; background-color: transparent; scroll-snap-align: center; }
+        
         .harga { color: #2ecc71; font-size: 20px; font-weight: bold; margin: 5px 0 15px 0; }
         .tombol-beli { display: block; text-align: center; background-color: #25d366; color: white; padding: 12px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px; }
         .tombol-beli:hover { background-color: #128c7e; }
@@ -56,30 +60,49 @@
             wadahProduk.innerHTML = '';
 
             data.forEach(barang => {
-                // 1. MERAPIKAN FORMAT ANGKA (Contoh: 50000 menjadi 50.000)
                 const hargaRupiah = new Intl.NumberFormat('id-ID').format(barang.harga);
 
-                // 2. LOGIKA TAMPILAN STOK
                 let tampilanStok = '';
-                const jumlahStok = parseInt(barang.stok || 0); // Jika kosong dianggap 0
+                const jumlahStok = parseInt(barang.stok || 0);
 
                 if (jumlahStok > 100) {
-                    tampilanStok = ''; // Tidak terlihat
+                    tampilanStok = ''; 
                 } else if (jumlahStok >= 51 && jumlahStok <= 100) {
-                    tampilanStok = '<p style="color: #f39c12; font-size: 14px; font-weight: bold; margin: 0;">Stok: &lt; 100</p>'; // Menampilkan < 100
+                    tampilanStok = '<p style="color: #f39c12; font-size: 14px; font-weight: bold; margin: 0;">Stok: &lt; 100</p>'; 
                 } else if (jumlahStok <= 50) {
-                    tampilanStok = `<p style="color: #e74c3c; font-size: 14px; font-weight: bold; margin: 0;">Sisa Stok: ${jumlahStok}</p>`; // Menampilkan jumlah asli
+                    tampilanStok = `<p style="color: #e74c3c; font-size: 14px; font-weight: bold; margin: 0;">Sisa Stok: ${jumlahStok}</p>`;
+                }
+
+                // LOGIKA UNTUK MENAMPILKAN BANYAK FOTO & VIDEO
+                let htmlMedia = '';
+                if (barang.foto_url) {
+                    // Memecah teks panjang berdasarkan tanda koma menjadi daftar link
+                    const daftarLink = barang.foto_url.split(',');
+                    
+                    htmlMedia = '<div class="galeri-media">';
+                    
+                    daftarLink.forEach(link => {
+                        const linkKecil = link.toLowerCase();
+                        // Jika link berakhiran video, tampilkan pemutar video
+                        if (linkKecil.includes('.mp4') || linkKecil.includes('.mov') || linkKecil.includes('.webm')) {
+                            htmlMedia += `<video src="${link}" class="item-media" controls preload="metadata"></video>`;
+                        } else {
+                            // Jika bukan, tampilkan sebagai foto biasa
+                            htmlMedia += `<img src="${link}" class="item-media" alt="${barang.nama_barang}">`;
+                        }
+                    });
+                    
+                    htmlMedia += '</div>';
+                } else {
+                    htmlMedia = `<div class="foto-produk" style="display:flex; align-items:center; justify-content:center; color:#999; height:300px; border: 1px solid #ddd; border-radius:5px; margin-bottom:15px;">Tidak ada media</div>`;
                 }
 
                 const pesanWa = `Halo, saya tertarik membeli ${barang.nama_barang} seharga Rp${hargaRupiah}.`;
                 const linkWa = `https://wa.me/${NOMOR_WA}?text=${encodeURIComponent(pesanWa)}`;
-                const fotoHtml = barang.foto_url 
-                    ? `<img src="${barang.foto_url}" class="foto-produk" alt="${barang.nama_barang}">` 
-                    : `<div class="foto-produk" style="display:flex; align-items:center; justify-content:center; color:#999;">Tidak ada foto</div>`;
-
+                
                 const elemenProduk = `
                     <div class="kartu-produk">
-                        ${fotoHtml}
+                        ${htmlMedia}
                         <h2 style="margin-top: 0; margin-bottom: 5px;">${barang.nama_barang}</h2>
                         <p style="margin-top: 0; font-size: 14px; color: #555; white-space: pre-wrap; margin-bottom: 10px;">${barang.deskripsi}</p>
                         ${tampilanStok}
