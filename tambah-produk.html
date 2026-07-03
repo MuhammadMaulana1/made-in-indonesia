@@ -20,8 +20,6 @@
         .baris-varian { display: flex; gap: 8px; margin-top: 8px; align-items: center; background: #fdfdfd; padding: 10px; border: 1px dashed #ccc; border-radius: 5px;}
         .tombol-tambah-varian { width: 100%; background-color: #28a745; color: white; border: none; padding: 12px; border-radius: 5px; cursor: pointer; margin-top: 10px; font-weight: bold; font-size: 14px; }
         .tombol-hapus-varian { background-color: #6c757d; color: white; border: none; border-radius: 5px; padding: 12px; cursor: pointer; font-weight: bold; }
-        
-        /* DESAIN KOTAK AKUN DI ATAS FORM */
         .info-akun-login { background: #e8f9ef; border: 1px solid #25d366; padding: 12px; border-radius: 5px; font-size: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .btn-logout { background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold;}
     </style>
@@ -29,7 +27,8 @@
 </head>
 <body>
 
-    <div class="wadah-form">
+    <!-- Diberi ID dan disembunyikan secara default (display: none) -->
+    <div class="wadah-form" id="wadah-utama" style="display: none;">
         <div class="info-akun-login">
             <span>Toko: <strong id="nama-email-aktif">...</strong></span>
             <button class="btn-logout" onclick="prosesKeluar()">Keluar (Logout)</button>
@@ -38,7 +37,7 @@
         <h2>Pajang Barang Daganganmu</h2>
         
         <label>Foto & Video Barang</label>
-        <span class="info-ukuran">*Maksimal 50 MB per file.</span>
+        <span class="info-ukuran">*Maksimal 50 MB per file. File video akan otomatis tampil di depan.</span>
         <input type="file" accept="image/*, video/*" id="input-file" multiple onchange="tambahFile()">
         <div id="preview-file"></div>
 
@@ -46,10 +45,12 @@
         <input type="text" id="nama" placeholder="Contoh: Minyak Kemiri Murni">
 
         <label>Varian Ukuran/Warna & Harga Khusus</label>
+        <span class="info-ukuran" style="color: #555;">*Isi jika produk ini memiliki pilihan ukuran/warna dengan harga berbeda.</span>
         <div id="wadah-varian-input"></div>
         <button type="button" class="tombol-tambah-varian" onclick="tambahBarisVarian()">+ Tambah Varian & Harga</button>
 
         <label>Harga Dasar (Rp)</label>
+        <span class="info-ukuran" style="color: #555;">*Harga ini akan tampil jika tidak ada varian yang dipilih.</span>
         <input type="number" id="harga" placeholder="Contoh: 30000">
 
         <label>Jumlah Stok Total</label>
@@ -70,21 +71,20 @@
 
         let emailPenjualAktif = "";
 
-        // PEMERIKSAAN KEAMANAN: APAKAH PENJUAL SUDAH LOGIN?
         async function cekKunciAkses() {
             const { data: { session } } = await dbToko.auth.getSession();
             
             if (!session) {
-                // Jika tidak ada data login, lempar paksa ke login.html
                 alert("Akses ditolak! Silakan login terlebih dahulu.");
-                window.location.href = "login.html";
+                window.location.replace("login.html"); // Replace mencegah user menekan tombol back
             } else {
-                // Jika ada, catat emailnya dan tampilkan di atas layar
                 emailPenjualAktif = session.user.email;
                 document.getElementById('nama-email-aktif').innerText = emailPenjualAktif;
+                // Jika lolos, baru tampilkan wujud formulirnya
+                document.getElementById('wadah-utama').style.display = 'block';
             }
         }
-        cekKunciAkses(); // Jalankan pemeriksaan saat halaman dibuka
+        cekKunciAkses(); 
 
         let daftarFile = [];
 
@@ -190,7 +190,7 @@
                     stok: stokBarang, 
                     deskripsi: deskripsiBarang,
                     foto_url: urlGabungan,
-                    email_penjual: emailPenjualAktif // OTOMATIS MENCATAT EMAIL PENJUAL YANG LOGIN
+                    email_penjual: emailPenjualAktif
                 }
             ]);
 
@@ -211,11 +211,10 @@
             tombol.disabled = false;
         }
 
-        // FUNGSI PROSES LOGOUT (KELUAR AKUN)
         async function prosesKeluar() {
             const { error } = await dbToko.auth.signOut();
             alert("Kamu telah keluar dari akun penjual.");
-            window.location.href = "login.html";
+            window.location.replace("login.html");
         }
     </script>
 </body>

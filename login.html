@@ -46,7 +46,6 @@
         const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
         const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
 
-        // 1. PROSES PENDAFTARAN AKUN BARU
         async function prosesDaftar() {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
@@ -65,14 +64,19 @@
             });
 
             if (error) {
-                alert("Gagal mendaftar: " + error.message);
+                if (error.message.includes("User already registered")) {
+                    alert("Gagal: Email ini sudah terdaftar. Silakan klik 'Masuk Aplikasi'.");
+                } else {
+                    alert("Gagal mendaftar: " + error.message);
+                }
             } else {
-                alert("Pendaftaran Berhasil! Akun tokomu sudah aktif. Sekarang silakan klik 'Masuk Aplikasi'.");
+                // Jika sukses daftar, langsung lempar ke halaman produk
+                alert("Pendaftaran Berhasil! Mengalihkan ke halaman tokomu...");
+                window.location.replace("tambah-produk.html");
             }
             tombol.innerText = "Daftar Akun Baru";
         }
 
-        // 2. PROSES MASUK / LOGIN
         async function prosesMasuk() {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
@@ -91,11 +95,15 @@
             });
 
             if (error) {
-                alert("Gagal Masuk: " + error.message);
+                // Menerjemahkan pesan error invalid credentials
+                if (error.message.includes("Invalid login credentials")) {
+                    alert("Gagal Masuk: Email atau password salah, atau akun belum terdaftar.");
+                } else {
+                    alert("Gagal Masuk: " + error.message);
+                }
             } else {
-                alert("Selamat Datang Kembali! Kamu akan diarahkan ke halaman upload barang.");
-                // Setelah login sukses, lempar penjual ke halaman tambah produk
-                window.location.href = "tambah-produk.html";
+                alert("Selamat Datang Kembali!");
+                window.location.replace("tambah-produk.html");
             }
             tombol.innerText = "Masuk Aplikasi";
         }
