@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tambah Barang - Made in Indonesia</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 15px; }
+        .wadah-form { width: 100%; max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-top: 0; }
+        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 8px; }
+        input[type="text"], input[type="number"], textarea, input[type="file"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; background-color: white; }
+        .tombol-simpan { display: block; width: 100%; background-color: #007bff; color: white; padding: 14px; border: none; border-radius: 5px; font-weight: bold; font-size: 16px; margin-top: 25px; cursor: pointer; }
+        .tombol-simpan:hover { background-color: #0056b3; }
+        .kembali { display: block; text-align: center; margin-top: 20px; color: #666; text-decoration: none; font-size: 14px; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="wadah-form">
+        <h2>Pajang Barang Daganganmu</h2>
+        <p style="text-align: center; font-size: 14px; color: #555;">Isi data di bawah untuk menampilkan produk di Made in Indonesia.</p>
+
+        <!-- Kotak foto sekarang sudah aktif -->
+        <label>Foto Barang</label>
+        <input type="file" accept="image/*" id="foto">
+
+        <label>Nama Barang</label>
+        <input type="text" id="nama" placeholder="Contoh: Minyak Kemiri Murni">
+
+        <label>Harga Barang (Rp)</label>
+        <input type="number" id="harga" placeholder="Contoh: 50000">
+
+        <label>Deskripsi Singkat</label>
+        <textarea id="deskripsi" rows="4" placeholder="Ceritakan keunggulan produkmu di sini..."></textarea>
+
+        <button id="tombol-simpan" class="tombol-simpan" onclick="simpanData()">Simpan Barang & Foto</button>
+
+        <a href="index.html" class="kembali">Kembali ke Halaman Utama</a>
+    </div>
+
+    <script>
+        // MASUKKAN KUNCI KAMU LAGI DI SINI
+        const URL_SUPABASE = 'https://obdmfjjckdhzqbvhpung.supabase.co';
+        const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
+
+        const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
+
+        async function simpanData() {
+            const namaBarang = document.getElementById('nama').value;
+            const hargaBarang = document.getElementById('harga').value;
+            const deskripsiBarang = document.getElementById('deskripsi').value;
+            const fileFoto = document.getElementById('foto').files[0]; // Mengambil file foto
+            const tombol = document.getElementById('tombol-simpan');
+
+            // Cek apakah data lengkap
+            if(namaBarang === "" || hargaBarang === "" || deskripsiBarang === "" || !fileFoto) {
+                alert("Tolong isi semua data dan pilih foto barangnya ya!");
+                return;
+            }
+
+            tombol.innerText = "Mengunggah foto...";
+
+            // 1. PROSES UPLOAD FOTO KE STORAGE
+            // Kita beri nama file unik menggunakan waktu agar tidak tertukar jika namanya sama
+            const namaFileUnik = Date.now() + "_" + fileFoto.name; 
+            
+            const { data: dataFoto, error: errorFoto } = await dbToko
+                .storage
+                .from('foto-barang')
+                .upload(namaFileUnik, fileFoto);
+
+            if (errorFoto) {
+                alert("Gagal mengunggah foto: " + errorFoto.message);
+                tombol.innerText = "Simpan Barang & Foto";
+                return;
+            }
+
+            // 2. MENDAPATKAN LINK (URL) FOTO YANG SUDAH DIUPLOAD
+            const { data: linkFoto } = dbToko
+                .storage
+                .from('foto-barang')
+                .getPublicUrl(namaFileUnik);
+            
+            const urlFotoBarang = linkFoto.publicUrl;
+
+            tombol.innerText = "Menyimpan data...";
+
+            // 3. MENYIMPAN TEKS DAN LINK FOTO KE DATABASE
+            const { data, error } = await dbToko
+                .from('produk')
+                .insert([
+                    { 
+                        nama_barang: namaBarang, 
+                        harga: hargaBarang, 
+                        deskripsi: deskripsiBarang,
+                        foto_url: urlFotoBarang // Link foto dimasukkan ke tabel
+                    }
+                ]);
+
+            if (error) {
+                alert("Yah, data gagal disimpan: " + error.message);
+                tombol.innerText = "Simpan Barang & Foto";
+            } else {
+                alert("Berhasil! Barang dan foto sudah masuk ke etalase.");
+                // Mengosongkan form
+                document.getElementById('nama').value = "";
+                document.getElementById('harga').value = "";
+                document.getElementById('deskripsi').value = "";
+                document.getElementById('foto').value = "";
+                tombol.innerText = "Simpan Barang & Foto";
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Made in Indonesia</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 15px; text-align: center; }
+        .wadah-toko { width: 100%; max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        
+        /* Desain kartu produk dan foto agar rapi di HP */
+        .kartu-produk { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fafafa; margin-top: 20px; text-align: left; }
+        .foto-produk { width: 100%; height: 250px; object-fit: cover; border-radius: 5px; margin-bottom: 10px; background-color: #eee; }
+        
+        .harga { color: #2ecc71; font-size: 20px; font-weight: bold; margin: 10px 0; }
+        .tombol-beli { display: block; text-align: center; background-color: #25d366; color: white; padding: 12px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 15px; }
+        .tombol-beli:hover { background-color: #128c7e; }
+        
+        .link-jual { display: inline-block; margin-bottom: 20px; color: #007bff; text-decoration: none; font-weight: bold; padding: 10px 20px; border: 2px solid #007bff; border-radius: 5px; }
+        .link-jual:hover { background-color: #007bff; color: white; }
+        
+        #pesan-status { color: #666; font-style: italic; }
+    </style>
+    
+    <!-- Memanggil jembatan Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="wadah-toko">
+        <h1>Made in Indonesia</h1>
+        <p>Tempat meletakkan dan menjual barang dengan mudah.</p>
+        
+        <a href="tambah-produk.html" class="link-jual">Jual Barang Baru</a>
+
+        <!-- Tempat kosong yang nanti akan diisi otomatis oleh JavaScript -->
+        <div id="daftar-produk">
+            <p id="pesan-status">Sedang menyusun etalase toko...</p>
+        </div>
+    </div>
+
+    <script>
+        // Kunci Supabase
+        const URL_SUPABASE = 'https://obdmfjjckdhzqbvhpung.supabase.co';
+        const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
+
+        const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
+
+        // UBAH NOMOR INI DENGAN NOMOR WA AKTIFMU (Awali dengan 62 tanpa tanda + atau angka 0)
+        const NOMOR_WA = "6285882255056"; 
+
+        async function tampilkanProduk() {
+            const wadahProduk = document.getElementById('daftar-produk');
+
+            // Menarik data dari tabel 'produk', diurutkan dari yang terbaru (descending)
+            const { data, error } = await dbToko
+                .from('produk')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            // Jika terjadi error saat menarik data
+            if (error) {
+                wadahProduk.innerHTML = '<p style="color:red;">Gagal memuat barang: ' + error.message + '</p>';
+                return;
+            }
+
+            // Jika database masih kosong
+            if (data.length === 0) {
+                wadahProduk.innerHTML = '<p>Belum ada barang yang dijual. Jadilah yang pertama!</p>';
+                return;
+            }
+
+            // Mengosongkan teks "Sedang menyusun etalase..."
+            wadahProduk.innerHTML = '';
+
+            // Looping: Membuat kotak HTML untuk setiap barang yang ada di database
+            data.forEach(barang => {
+                // Membuat teks WA otomatis sesuai nama dan harga barang
+                const pesanWa = `Halo, saya tertarik membeli ${barang.nama_barang} seharga Rp${barang.harga}.`;
+                const linkWa = `https://wa.me/${NOMOR_WA}?text=${encodeURIComponent(pesanWa)}`;
+
+                // Mengecek apakah barang tersebut punya foto
+                const fotoHtml = barang.foto_url 
+                    ? `<img src="${barang.foto_url}" class="foto-produk" alt="${barang.nama_barang}">` 
+                    : `<div class="foto-produk" style="display:flex; align-items:center; justify-content:center; color:#999;">Tidak ada foto</div>`;
+
+                // Menyusun satu kesatuan kotak produk
+                const elemenProduk = `
+                    <div class="kartu-produk">
+                        ${fotoHtml}
+                        <h2 style="margin-top: 0; margin-bottom: 5px;">${barang.nama_barang}</h2>
+                        <p style="margin-top: 0; font-size: 14px; color: #555; white-space: pre-wrap;">${barang.deskripsi}</p>
+                        <p class="harga">Rp ${barang.harga}</p>
+                        <a href="${linkWa}" class="tombol-beli" target="_blank">
+                            Beli via WhatsApp
+                        </a>
+                    </div>
+                `;
+                
+                // Menambahkan kotak tersebut ke halaman utama
+                wadahProduk.innerHTML += elemenProduk;
+            });
+        }
+
+        // Perintahkan browser untuk langsung menjalankan fungsi di atas saat halaman dibuka
+        tampilkanProduk();
+    </script>
+</body>
+</html>
