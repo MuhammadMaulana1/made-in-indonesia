@@ -22,7 +22,6 @@
         .tombol-beli { display: block; text-align: center; background-color: #25d366; color: white; padding: 12px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px; }
         .tombol-beli:hover { background-color: #128c7e; }
         
-        /* DESAIN MENU ATAS & TOMBOL HAPUS BARU */
         .link-jual { display: inline-block; margin-bottom: 20px; color: #007bff; text-decoration: none; font-weight: bold; padding: 10px 20px; border: 2px solid #007bff; border-radius: 5px; }
         .link-jual:hover { background-color: #007bff; color: white; }
         .wadah-menu-login { background: #eaf2f8; padding: 12px; border-radius: 5px; font-size: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
@@ -31,6 +30,9 @@
         .tag-pemilik { font-size: 12px; color: #28a745; font-weight: bold; margin-bottom: 8px; display: block; }
         .tombol-hapus-produk { display: block; width: 100%; text-align: center; background-color: #dc3545; color: white; padding: 12px; border: none; border-radius: 5px; font-weight: bold; margin-top: 10px; cursor: pointer; }
         .tombol-hapus-produk:hover { background-color: #bd2130; }
+        
+        /* Desain teks identitas nama toko */
+        .nama-toko-penjual { font-size: 13px; color: #666; margin-top: 0; margin-bottom: 12px; display: block; }
         
         #pesan-status { color: #666; font-style: italic; }
     </style>
@@ -62,17 +64,16 @@
             const wadahProduk = document.getElementById('daftar-produk');
             const wadahNavigasi = document.getElementById('navigasi-atas');
 
-            // 1. CEK SIAPA USER YANG SEDANG LOGIN
             const { data: { session } } = await dbToko.auth.getSession();
             const emailUserLogin = session ? session.user.email : null;
 
-            // Atur tampilan tombol menu di atas berdasarkan status login
+            // 1. PEMBERSIHAN TANDA "+" DI MENU ATAS
             if (emailUserLogin) {
                 wadahNavigasi.innerHTML = `
                     <div class="wadah-menu-login">
                         <span>Toko: <strong>${emailUserLogin}</strong></span>
                         <div>
-                            <a href="tambah-produk.html" class="btn-link-menu">+ Jual Barang</a>
+                            <a href="tambah-produk.html" class="btn-link-menu">Jual Barang</a>
                             <a href="#" class="btn-keluar-menu" onclick="prosesKeluarHalamanUtama(event)">Keluar</a>
                         </div>
                     </div>
@@ -81,7 +82,6 @@
                 wadahNavigasi.innerHTML = `<a href="login.html" class="link-jual">Masuk Toko / Jual Barang</a>`;
             }
 
-            // 2. AMBIL DATA PRODUK DARI DATABASE
             const { data, error } = await dbToko.from('produk').select('*').order('created_at', { ascending: false });
 
             if (error) {
@@ -145,7 +145,6 @@
                     }
                 }
 
-                // 3. LOGIKA DETEKSI TOMBOL HAPUS UNTUK PEMILIK TOKO
                 let htmlTombolHapus = '';
                 if (emailUserLogin && barang.email_penjual === emailUserLogin) {
                     htmlTombolHapus = `
@@ -154,13 +153,19 @@
                     `;
                 }
 
+                // 2. AMBIL EMAIL DAN TAMPILKAN SEBAGAI NAMA TOKO
+                const namaToko = barang.email_penjual ? barang.email_penjual.split('@')[0] : 'Umum';
+
                 const pesanWaAwal = `Halo, saya tertarik membeli ${barang.nama_barang} seharga Rp${hargaRupiahAwal}.`;
                 const linkWaAwal = `https://wa.me/${NOMOR_WA}?text=${encodeURIComponent(pesanWaAwal)}`;
                 
                 const elemenProduk = `
                     <div class="kartu-produk">
                         ${htmlMedia}
-                        <h2 style="margin-top: 0; margin-bottom: 5px;">${barang.nama_barang}</h2>
+                        <h2 style="margin-top: 0; margin-bottom: 2px;">${barang.nama_barang}</h2>
+                        
+                        <span class="nama-toko-penjual">Toko: <strong>${namaToko}</strong></span>
+                        
                         <p style="margin-top: 0; font-size: 14px; color: #555; white-space: pre-wrap; margin-bottom: 10px;">${barang.deskripsi}</p>
                         
                         ${htmlVarian}
@@ -192,10 +197,9 @@
             tombolWa.href = `https://wa.me/${NOMOR_WA}?text=${encodeURIComponent(pesanWaBaru)}`;
         }
 
-        // FUNGSI EKSEKUSI PENGHAPUSAN PRODUK
         async function hapusProdukOtomatis(idProduk, namaBarang) {
             const konfirmasi = confirm(`Apakah kamu yakin ingin menghapus produk "${namaBarang}" dari etalase tokomu?`);
-            if (!konfirmasi) return; // Batalkan jika salah klik
+            if (!konfirmasi) return; 
 
             const { error } = await dbToko
                 .from('produk')
@@ -206,11 +210,10 @@
                 alert("Yah, gagal menghapus produk: " + error.message);
             } else {
                 alert("Sukses! Produk berhasil dihapus dari etalase.");
-                tampilkanProduk(); // Memuat ulang produk di layar secara otomatis tanpa reload
+                tampilkanProduk(); 
             }
         }
 
-        // FUNGSI TOMBOL LOGOUT DI HALAMAN UTAMA
         async function prosesKeluarHalamanUtama(event) {
             event.preventDefault();
             await dbToko.auth.signOut();

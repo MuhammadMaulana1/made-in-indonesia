@@ -18,6 +18,11 @@
         .btn-daftar { background-color: white; color: #007bff; border: 2px solid #007bff; }
         .btn-daftar:hover { background-color: #e6f0fa; }
         .kembali { display: block; text-align: center; margin-top: 20px; color: #666; text-decoration: none; font-size: 14px; }
+        
+        /* Gaya tambahan untuk fitur lihat password */
+        .wadah-lihat-password { display: flex; align-items: center; gap: 6px; margin-top: -5px; margin-bottom: 15px; }
+        .wadah-lihat-password input { cursor: pointer; width: 16px; height: 16px; }
+        .wadah-lihat-password label { font-weight: normal; margin: 0; font-size: 14px; color: #555; cursor: pointer; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -32,6 +37,11 @@
 
         <label>Password</label>
         <input type="password" id="password" placeholder="Minimal 6 karakter">
+        
+        <div class="wadah-lihat-password">
+            <input type="checkbox" id="centang-password" onclick="toggleTampilanPassword()">
+            <label for="centang-password">Lihat Password</label>
+        </div>
 
         <div class="tombol-grup">
             <button class="btn btn-login" id="btn-masuk" onclick="prosesMasuk()">Masuk Aplikasi</button>
@@ -45,6 +55,16 @@
         const URL_SUPABASE = 'https://obdmfjjckdhzqbvhpung.supabase.co';
         const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
         const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
+
+        // FUNGSI TOGGLE PASSWORD
+        function toggleTampilanPassword() {
+            const inputPassword = document.getElementById('password');
+            if (inputPassword.type === "password") {
+                inputPassword.type = "text";
+            } else {
+                inputPassword.type = "password";
+            }
+        }
 
         async function prosesDaftar() {
             const email = document.getElementById('email').value.trim();
@@ -70,7 +90,6 @@
                     alert("Gagal mendaftar: " + error.message);
                 }
             } else {
-                // Jika sukses daftar, langsung lempar ke halaman produk
                 alert("Pendaftaran Berhasil! Mengalihkan ke halaman tokomu...");
                 window.location.replace("tambah-produk.html");
             }
@@ -95,7 +114,6 @@
             });
 
             if (error) {
-                // Menerjemahkan pesan error invalid credentials
                 if (error.message.includes("Invalid login credentials")) {
                     alert("Gagal Masuk: Email atau password salah, atau akun belum terdaftar.");
                 } else {
