@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akun Saya - Made in Indonesia</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 15px; }
+        .wadah-akun { width: 100%; max-width: 450px; margin: 50px auto auto auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; }
+        .avatar-toko { width: 80px; height: 80px; background-color: #25d366; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; margin: 0 auto 15px auto; }
+        h2 { margin: 0 0 5px 0; color: #333; }
+        .email-user { color: #666; font-size: 14px; margin-bottom: 30px; }
+        
+        /* Desain Menu Tombol */
+        .menu-grup { display: flex; flex-direction: column; gap: 12px; }
+        .btn-menu { display: block; width: 100%; padding: 14px; text-decoration: none; font-weight: bold; font-size: 16px; border-radius: 5px; text-align: center; transition: 0.2s; border: none; cursor: pointer; }
+        .btn-kelola { background-color: #007bff; color: white; }
+        .btn-kelola:hover { background-color: #0056b3; }
+        .btn-tambah { background-color: #28a745; color: white; }
+        .btn-tambah:hover { background-color: #218838; }
+        .btn-etalase { background-color: white; color: #333; border: 1px solid #ccc; }
+        .btn-etalase:hover { background-color: #f8f9fa; }
+        .btn-keluar { background-color: #dc3545; color: white; margin-top: 15px; }
+        .btn-keluar:hover { background-color: #c82333; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="wadah-akun" id="konten-akun" style="display: none;">
+        <div class="avatar-toko" id="huruf-depan">M</div>
+        
+        <h2 id="nama-toko">Nama Toko</h2>
+        <p class="email-user" id="email-aktif">toko@email.com</p>
+
+        <div class="menu-grup">
+            <a href="produk-saya.html" class="btn-menu btn-kelola">📦 Kelola Produk Saya</a>
+            <a href="tambah-produk.html" class="btn-menu btn-tambah">➕ Tambah Produk Baru</a>
+            <a href="index.html" class="btn-menu btn-etalase">🏪 Lihat Etalase Toko Utama</a>
+            <button class="btn-menu btn-keluar" onclick="prosesLogout()">Keluar (Logout)</button>
+        </div>
+    </div>
+
+    <script>
+        const URL_SUPABASE = 'https://obdmfjjckdhzqbvhpung.supabase.co';
+        const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
+        const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
+
+        async function proteksiHalamanAkun() {
+            const { data: { session } } = await dbToko.auth.getSession();
+            
+            if (!session) {
+                alert("Silakan login terlebih dahulu untuk melihat akun.");
+                window.location.replace("login.html");
+            } else {
+                const email = session.user.email;
+                const namaDepanToko = email.split('@')[0];
+                
+                // Isi data ke layar
+                document.getElementById('email-aktif').innerText = email;
+                document.getElementById('nama-toko').innerText = namaDepanToko;
+                document.getElementById('huruf-depan').innerText = namaDepanToko.charAt(0).toUpperCase();
+                
+                // Tampilkan halaman
+                document.getElementById('konten-akun').style.display = 'block';
+            }
+        }
+        proteksiHalamanAkun();
+
+        async function prosesLogout() {
+            await dbToko.auth.signOut();
+            alert("Berhasil keluar akun.");
+            window.location.replace("index.html");
+        }
+    </script>
+</body>
+</html>
