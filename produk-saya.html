@@ -17,9 +17,16 @@
         .wadah-tombol-varian { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
         .tombol-varian { padding: 8px 12px; border: 1px solid #ccc; background: white; border-radius: 5px; cursor: pointer; font-size: 14px; color: #333; }
         .tombol-varian.aktif { border-color: #007bff; color: #007bff; background: #ebf5ff; font-weight: bold; }
-        
         .harga { color: #2ecc71; font-size: 20px; font-weight: bold; margin: 5px 0 15px 0; }
-        .tombol-hapus-produk { display: block; width: 100%; text-align: center; background-color: #dc3545; color: white; padding: 12px; border: none; border-radius: 5px; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 16px; }
+        
+        /* DESAIN BARU: TOMBOL TAMBAH, EDIT, DAN HAPUS */
+        .btn-tambah-utama { display: block; width: 100%; text-align: center; background-color: #28a745; color: white; padding: 14px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-bottom: 20px; font-size: 16px; }
+        .btn-tambah-utama:hover { background-color: #218838; }
+        
+        .grup-tombol-aksi { display: flex; gap: 10px; margin-top: 15px; }
+        .tombol-edit-produk { flex: 1; text-align: center; background-color: #007bff; color: white; padding: 12px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px; }
+        .tombol-edit-produk:hover { background-color: #0056b3; }
+        .tombol-hapus-produk { flex: 1; text-align: center; background-color: #dc3545; color: white; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 14px; }
         .tombol-hapus-produk:hover { background-color: #bd2130; }
         
         .header-manajemen { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 15px; }
@@ -32,9 +39,12 @@
 
     <div class="wadah-toko">
         <div class="header-manajemen">
-            <a href="akun.html" class="btn-kembali">← Kembali ke Menu Akun</a>
-            <h2 style="margin: 0; font-size: 18px; color: #333;">Daftar Barang Daganganku</h2>
+            <a href="akun.html" class="btn-kembali">← Kembali ke Akun</a>
+            <h2 style="margin: 0; font-size: 18px; color: #333;">Kelola Dagangan</h2>
         </div>
+
+        <!-- TOMBOL TAMBAH BARANG DIPINDAHKAN KE SINI -->
+        <a href="tambah-produk.html" class="btn-tambah-utama">➕ Tambah Produk Baru</a>
 
         <div id="daftar-produk-saya">
             <p id="pesan-status">Sedang mencari barang daganganmu...</p>
@@ -48,29 +58,17 @@
 
         async function ambilProdukSaya() {
             const wadahProduk = document.getElementById('daftar-produk-saya');
-
-            // 1. Ambil data session login
             const { data: { session } } = await dbToko.auth.getSession();
-            if (!session) {
-                window.location.replace("login.html");
-                return;
-            }
+            if (!session) { window.location.replace("login.html"); return; }
+            
             const emailUserLogin = session.user.email;
 
-            // 2. Tarik data khusus yang email_penjual cocok dengan user login (.eq)
-            const { data, error } = await dbToko
-                .from('produk')
-                .select('*')
-                .eq('email_penjual', emailUserLogin)
-                .order('created_at', { ascending: false });
+            const { data, error } = await dbToko.from('produk').select('*').eq('email_penjual', emailUserLogin).order('created_at', { ascending: false });
 
-            if (error) {
-                wadahProduk.innerHTML = '<p style="color:red;">Gagal memuat barang: ' + error.message + '</p>';
-                return;
-            }
+            if (error) { wadahProduk.innerHTML = '<p style="color:red;">Gagal memuat barang: ' + error.message + '</p>'; return; }
 
             if (data.length === 0) {
-                wadahProduk.innerHTML = '<p style="color:#777; margin: 30px 0;">Kamu belum memajang produk apa pun. Silakan tambah produk baru terlebih dahulu!</p>';
+                wadahProduk.innerHTML = '<p style="color:#777; margin: 30px 0;">Kamu belum memajang produk apa pun. Silakan klik tombol hijau di atas!</p>';
                 return;
             }
 
@@ -97,7 +95,6 @@
                         if (!isVideoA && isVideoB) return 1;
                         return 0;
                     });
-                    
                     htmlMedia = '<div class="galeri-media">';
                     daftarLink.forEach(link => {
                         if (link.toLowerCase().match(/\.(mp4|mov|webm)$/i)) {
@@ -129,15 +126,17 @@
                         ${htmlMedia}
                         <h2 style="margin-top: 0; margin-bottom: 5px;">${barang.nama_barang}</h2>
                         <p style="margin-top: 0; font-size: 14px; color: #555; white-space: pre-wrap; margin-bottom: 10px;">${barang.deskripsi}</p>
-                        
                         ${htmlVarian}
                         ${tampilanStok}
-                        
                         <p class="harga" id="harga-${barang.id}">Rp ${hargaRupiahAwal}</p>
-                        <button class="tombol-hapus-produk" onclick="hapusProdukSaya('${barang.id}', '${barang.nama_barang}')">Hapus Produk Ini</button>
+                        
+                        <!-- TOMBOL EDIT DAN HAPUS BERDAMPINGAN -->
+                        <div class="grup-tombol-aksi">
+                            <a href="tambah-produk.html?edit=${barang.id}" class="tombol-edit-produk">Edit Produk</a>
+                            <button class="tombol-hapus-produk" onclick="hapusProdukSaya('${barang.id}', '${barang.nama_barang}')">Hapus</button>
+                        </div>
                     </div>
                 `;
-                
                 wadahProduk.innerHTML += elemenProduk;
             });
         }
@@ -153,17 +152,12 @@
         }
 
         async function hapusProdukSaya(idProduk, namaBarang) {
-            const konfirmasi = confirm(`Apakah kamu yakin ingin menghapus produk "${namaBarang}"?`);
+            const konfirmasi = confirm(`Yakin ingin menghapus produk "${namaBarang}"?`);
             if (!konfirmasi) return;
 
             const { error } = await dbToko.from('produk').delete().eq('id', idProduk);
-
-            if (error) {
-                alert("Gagal menghapus produk: " + error.message);
-            } else {
-                alert("Produk berhasil dihapus.");
-                ambilProdukSaya(); // Muat ulang daftar barang secara otomatis
-            }
+            if (error) { alert("Gagal menghapus produk: " + error.message); } 
+            else { alert("Produk berhasil dihapus."); ambilProdukSaya(); }
         }
 
         ambilProdukSaya();

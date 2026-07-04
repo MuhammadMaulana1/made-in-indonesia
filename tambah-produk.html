@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambah Barang - Made in Indonesia</title>
+    <title>Kelola Produk - Made in Indonesia</title>
     <style>
         * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 15px; }
@@ -13,36 +13,25 @@
         input[type="text"], input[type="number"], textarea, input[type="file"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; background-color: white; }
         .tombol-simpan { display: block; width: 100%; background-color: #007bff; color: white; padding: 14px; border: none; border-radius: 5px; font-weight: bold; font-size: 16px; margin-top: 25px; cursor: pointer; }
         .tombol-simpan:hover { background-color: #0056b3; }
-        
-        /* Modifikasi link navigasi kembali */
         .kembali { display: block; text-align: center; margin-top: 15px; color: #007bff; text-decoration: none; font-size: 15px; font-weight: bold; }
-        
         .info-ukuran { font-size: 12px; color: #e74c3c; margin-bottom: 10px; display: block; font-style: italic; }
         #preview-file { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
         .item-file { display: flex; justify-content: space-between; align-items: center; background: #e9ecef; padding: 10px; border-radius: 5px; font-size: 14px; border: 1px solid #ddd; }
         .tombol-hapus { background: #ff4d4d; color: white; border: none; border-radius: 3px; padding: 5px 10px; cursor: pointer; font-size: 12px; font-weight: bold; }
         .baris-varian { display: flex; gap: 8px; margin-top: 8px; align-items: center; background: #fdfdfd; padding: 10px; border: 1px dashed #ccc; border-radius: 5px;}
         .tombol-tambah-varian { width: 100%; background-color: #28a745; color: white; border: none; padding: 12px; border-radius: 5px; cursor: pointer; margin-top: 10px; font-weight: bold; font-size: 14px; }
-        .info-akun-login { background: #e8f9ef; border: 1px solid #25d366; padding: 12px; border-radius: 5px; font-size: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .btn-logout { background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold;}
+        .tombol-hapus-varian { background-color: #6c757d; color: white; border: none; border-radius: 5px; padding: 12px; cursor: pointer; font-weight: bold; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
     <div class="wadah-form" id="wadah-utama" style="display: none;">
-        <div class="info-akun-login">
-            <span>Toko: <strong id="nama-email-aktif">...</strong></span>
-            <div>
-                <a href="akun.html" style="text-decoration: none; color: #007bff; font-weight: bold; font-size: 13px; margin-right: 15px;">Menu Akun</a>
-                <button class="btn-logout" onclick="prosesKeluar()">Keluar</button>
-            </div>
-        </div>
-
-        <h2>Pajang Barang Daganganmu</h2>
+        
+        <h2 id="judul-halaman">Pajang Barang Baru</h2>
         
         <label>Foto & Video Barang</label>
-        <span class="info-ukuran">*Maksimal 50 MB per file. File video akan otomatis tampil di depan.</span>
+        <span class="info-ukuran" id="info-media">*Maksimal 50 MB per file. File video akan otomatis tampil di depan.</span>
         <input type="file" accept="image/*, video/*" id="input-file" multiple onchange="tambahFile()">
         <div id="preview-file"></div>
 
@@ -52,10 +41,9 @@
         <label>Varian Ukuran/Warna & Harga Khusus</label>
         <span class="info-ukuran" style="color: #555;">*Isi jika produk ini memiliki pilihan ukuran/warna dengan harga berbeda.</span>
         <div id="wadah-varian-input"></div>
-        <button type="button" class="tombol-tambah-varian" onclick="tambahBarisVarian()">+ Tambah Varian & Harga</button>
+        <button type="button" class="tombol-tambah-varian" onclick="tambahBarisVarian('', '')">+ Tambah Varian & Harga</button>
 
         <label>Harga Dasar (Rp)</label>
-        <span class="info-ukuran" style="color: #555;">*Harga ini akan tampil jika tidak ada varian yang dipilih.</span>
         <input type="number" id="harga" placeholder="Contoh: 30000">
 
         <label>Jumlah Stok Total</label>
@@ -66,8 +54,8 @@
 
         <button id="tombol-simpan" class="tombol-simpan" onclick="simpanData()">Simpan Barang & Media</button>
 
-        <a href="akun.html" class="kembali">← Kembali ke Halaman Akun</a>
-        <a href="index.html" class="kembali" style="color: #666; font-size: 13px; font-weight: normal; margin-top: 10px;">Lihat Etalase Utama</a>
+        <!-- Arah pintu keluar dikembalikan ke halaman Kelola Produk -->
+        <a href="produk-saya.html" class="kembali">← Kembali ke Kelola Produk</a>
     </div>
 
     <script>
@@ -76,48 +64,82 @@
         const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
 
         let emailPenjualAktif = "";
+        let isEditMode = false;
+        let idProdukEdit = null;
+        let urlFotoLama = "";
 
         async function cekKunciAkses() {
             const { data: { session } } = await dbToko.auth.getSession();
-            
             if (!session) {
                 alert("Akses ditolak! Silakan login terlebih dahulu.");
                 window.location.replace("login.html"); 
             } else {
                 emailPenjualAktif = session.user.email;
-                document.getElementById('nama-email-aktif').innerText = emailPenjualAktif.split('@')[0];
                 document.getElementById('wadah-utama').style.display = 'block';
+                
+                // Menjalankan pengecekan apakah ini mode Edit
+                cekModeEdit();
             }
         }
         cekKunciAkses(); 
 
+        async function cekModeEdit() {
+            const urlParams = new URLSearchParams(window.location.search);
+            idProdukEdit = urlParams.get('edit');
+            
+            if (idProdukEdit) {
+                isEditMode = true;
+                document.getElementById('judul-halaman').innerText = "Edit Barang Dagangan";
+                document.getElementById('tombol-simpan').innerText = "Simpan Perubahan";
+                document.getElementById('info-media').innerText += " (Biarkan kosong jika tidak ingin mengubah foto/video yang lama).";
+
+                const { data, error } = await dbToko.from('produk').select('*').eq('id', idProdukEdit).single();
+                
+                if (data) {
+                    document.getElementById('nama').value = data.nama_barang;
+                    document.getElementById('harga').value = data.harga;
+                    document.getElementById('stok').value = data.stok;
+                    document.getElementById('deskripsi').value = data.deskripsi;
+                    urlFotoLama = data.foto_url;
+
+                    if (data.varian) {
+                        const listVarian = data.varian.split(',');
+                        listVarian.forEach(v => {
+                            const pecah = v.split(':');
+                            tambahBarisVarian(pecah[0].trim(), pecah[1] ? pecah[1].trim() : '');
+                        });
+                    } else {
+                        tambahBarisVarian('', '');
+                    }
+                }
+            } else {
+                tambahBarisVarian('', '');
+            }
+        }
+
         let daftarFile = [];
 
-        function tambahBarisVarian() {
+        function tambahBarisVarian(namaAwal, hargaAwal) {
             const wadah = document.getElementById('wadah-varian-input');
             const div = document.createElement('div');
             div.className = 'baris-varian';
             div.innerHTML = `
                 <div style="flex: 1;">
-                    <input type="text" class="input-nama-varian" placeholder="Ukuran (cth: 30ml)" style="margin-bottom: 5px;">
-                    <input type="number" class="input-harga-varian" placeholder="Harga Rp (cth: 35000)">
+                    <input type="text" class="input-nama-varian" value="${namaAwal}" placeholder="Ukuran (cth: 30ml)" style="margin-bottom: 5px;">
+                    <input type="number" class="input-harga-varian" value="${hargaAwal}" placeholder="Harga Rp (cth: 35000)">
                 </div>
                 <button type="button" class="tombol-hapus-varian" onclick="this.parentElement.remove()">X</button>
             `;
             wadah.appendChild(div);
         }
-        tambahBarisVarian();
 
         function tambahFile() {
             const input = document.getElementById('input-file');
             const filesBaru = input.files;
             const maxUkuran = 50 * 1024 * 1024; 
             for(let i = 0; i < filesBaru.length; i++) {
-                if (filesBaru[i].size > maxUkuran) {
-                    alert(`Gagal! File "${filesBaru[i].name}" melebihi 50 MB.`);
-                } else {
-                    daftarFile.push(filesBaru[i]); 
-                }
+                if (filesBaru[i].size > maxUkuran) { alert(`Gagal! File "${filesBaru[i].name}" melebihi 50 MB.`); } 
+                else { daftarFile.push(filesBaru[i]); }
             }
             input.value = ""; 
             tampilkanPreview();
@@ -160,66 +182,68 @@
             }
             const urlVarianGabungan = arrayVarian.join(',');
 
-            if(namaBarang === "" || hargaBarang === "" || stokBarang === "" || deskripsiBarang === "" || daftarFile.length === 0) {
-                alert("Tolong isi semua data utama dan pilih minimal 1 foto/video!");
-                return;
+            if(namaBarang === "" || hargaBarang === "" || stokBarang === "" || deskripsiBarang === "") {
+                alert("Tolong isi semua data utama barang!"); return;
             }
 
-            tombol.innerText = `Mengunggah media...`;
+            // Jika barang baru, wajib ada foto. Jika edit, boleh kosong (berarti tidak ganti foto)
+            if(!isEditMode && daftarFile.length === 0) {
+                alert("Silakan pilih minimal 1 foto/video untuk barang barumu!"); return;
+            }
+
+            tombol.innerText = `Memproses data...`;
             tombol.disabled = true;
 
-            let kumpulanLink = [];
-            for(let i = 0; i < daftarFile.length; i++) {
-                let file = daftarFile[i];
-                let namaAman = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
-                let namaFileUnik = Date.now() + "_" + i + "_" + namaAman; 
-                const { data: dataFoto, error: errorFoto } = await dbToko.storage.from('foto-barang').upload(namaFileUnik, file);
-                if (errorFoto) {
-                    alert("Gagal mengunggah file " + file.name + ": " + errorFoto.message);
-                    tombol.innerText = "Simpan Barang & Media";
-                    tombol.disabled = false;
-                    return;
+            let urlGabunganAkhir = urlFotoLama; // Secara default menggunakan foto lama
+
+            // Proses upload hanya dijalankan JIKA penjual memilih file baru
+            if (daftarFile.length > 0) {
+                let kumpulanLink = [];
+                for(let i = 0; i < daftarFile.length; i++) {
+                    let file = daftarFile[i];
+                    let namaAman = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
+                    let namaFileUnik = Date.now() + "_" + i + "_" + namaAman; 
+                    const { data: dataFoto, error: errorFoto } = await dbToko.storage.from('foto-barang').upload(namaFileUnik, file);
+                    
+                    if (errorFoto) {
+                        alert("Gagal mengunggah file " + file.name + ": " + errorFoto.message);
+                        tombol.innerText = isEditMode ? "Simpan Perubahan" : "Simpan Barang & Media";
+                        tombol.disabled = false; return;
+                    }
+                    const { data: linkMedia } = dbToko.storage.from('foto-barang').getPublicUrl(namaFileUnik);
+                    kumpulanLink.push(linkMedia.publicUrl);
                 }
-                const { data: linkMedia } = dbToko.storage.from('foto-barang').getPublicUrl(namaFileUnik);
-                kumpulanLink.push(linkMedia.publicUrl);
+                urlGabunganAkhir = kumpulanLink.join(','); // Timpa foto lama dengan foto baru
             }
 
-            const urlGabungan = kumpulanLink.join(',');
-            tombol.innerText = "Menyimpan data...";
+            const paketData = { 
+                nama_barang: namaBarang, 
+                varian: urlVarianGabungan, 
+                harga: hargaBarang, 
+                stok: stokBarang, 
+                deskripsi: deskripsiBarang,
+                foto_url: urlGabunganAkhir,
+                email_penjual: emailPenjualAktif
+            };
 
-            const { data, error } = await dbToko.from('produk').insert([
-                { 
-                    nama_barang: namaBarang, 
-                    varian: urlVarianGabungan, 
-                    harga: hargaBarang, 
-                    stok: stokBarang, 
-                    deskripsi: deskripsiBarang,
-                    foto_url: urlGabungan,
-                    email_penjual: emailPenjualAktif
-                }
-            ]);
+            let errorSistem = null;
 
-            if (error) {
-                alert("Data gagal disimpan: " + error.message);
+            if (isEditMode) {
+                const { error } = await dbToko.from('produk').update(paketData).eq('id', idProdukEdit);
+                errorSistem = error;
             } else {
-                alert("Berhasil! Barang tokomu sudah masuk etalase.");
-                document.getElementById('nama').value = "";
-                document.getElementById('harga').value = "";
-                document.getElementById('stok').value = "";
-                document.getElementById('deskripsi').value = "";
-                document.getElementById('wadah-varian-input').innerHTML = "";
-                tambahBarisVarian();
-                daftarFile = []; 
-                tampilkanPreview(); 
+                const { error } = await dbToko.from('produk').insert([paketData]);
+                errorSistem = error;
             }
-            tombol.innerText = "Simpan Barang & Media";
-            tombol.disabled = false;
-        }
 
-        async function prosesKeluar() {
-            const { error } = await dbToko.auth.signOut();
-            alert("Kamu telah keluar dari akun penjual.");
-            window.location.replace("login.html");
+            if (errorSistem) {
+                alert("Data gagal disimpan: " + errorSistem.message);
+            } else {
+                alert(isEditMode ? "Berhasil! Perubahan telah disimpan." : "Berhasil! Barang baru sudah masuk etalase.");
+                window.location.replace("produk-saya.html"); 
+            }
+            tombol.innerText = isEditMode ? "Simpan Perubahan" : "Simpan Barang & Media";
+            tombol.disabled = false;
         }
     </script>
 </body>
