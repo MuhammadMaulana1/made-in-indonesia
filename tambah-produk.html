@@ -13,13 +13,16 @@
         input[type="text"], input[type="number"], textarea, input[type="file"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; background-color: white; }
         .tombol-simpan { display: block; width: 100%; background-color: #007bff; color: white; padding: 14px; border: none; border-radius: 5px; font-weight: bold; font-size: 16px; margin-top: 25px; cursor: pointer; }
         .tombol-simpan:hover { background-color: #0056b3; }
-        .kembali { display: block; text-align: center; margin-top: 20px; color: #666; text-decoration: none; font-size: 14px; }
+        
+        /* Modifikasi link navigasi kembali */
+        .kembali { display: block; text-align: center; margin-top: 15px; color: #007bff; text-decoration: none; font-size: 15px; font-weight: bold; }
+        
         .info-ukuran { font-size: 12px; color: #e74c3c; margin-bottom: 10px; display: block; font-style: italic; }
         #preview-file { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
         .item-file { display: flex; justify-content: space-between; align-items: center; background: #e9ecef; padding: 10px; border-radius: 5px; font-size: 14px; border: 1px solid #ddd; }
+        .tombol-hapus { background: #ff4d4d; color: white; border: none; border-radius: 3px; padding: 5px 10px; cursor: pointer; font-size: 12px; font-weight: bold; }
         .baris-varian { display: flex; gap: 8px; margin-top: 8px; align-items: center; background: #fdfdfd; padding: 10px; border: 1px dashed #ccc; border-radius: 5px;}
         .tombol-tambah-varian { width: 100%; background-color: #28a745; color: white; border: none; padding: 12px; border-radius: 5px; cursor: pointer; margin-top: 10px; font-weight: bold; font-size: 14px; }
-        .tombol-hapus-varian { background-color: #6c757d; color: white; border: none; border-radius: 5px; padding: 12px; cursor: pointer; font-weight: bold; }
         .info-akun-login { background: #e8f9ef; border: 1px solid #25d366; padding: 12px; border-radius: 5px; font-size: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .btn-logout { background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold;}
     </style>
@@ -27,11 +30,13 @@
 </head>
 <body>
 
-    <!-- Diberi ID dan disembunyikan secara default (display: none) -->
     <div class="wadah-form" id="wadah-utama" style="display: none;">
         <div class="info-akun-login">
             <span>Toko: <strong id="nama-email-aktif">...</strong></span>
-            <button class="btn-logout" onclick="prosesKeluar()">Keluar (Logout)</button>
+            <div>
+                <a href="akun.html" style="text-decoration: none; color: #007bff; font-weight: bold; font-size: 13px; margin-right: 15px;">Menu Akun</a>
+                <button class="btn-logout" onclick="prosesKeluar()">Keluar</button>
+            </div>
         </div>
 
         <h2>Pajang Barang Daganganmu</h2>
@@ -61,7 +66,8 @@
 
         <button id="tombol-simpan" class="tombol-simpan" onclick="simpanData()">Simpan Barang & Media</button>
 
-        <a href="index.html" class="kembali">Kembali ke Halaman Utama</a>
+        <a href="akun.html" class="kembali">← Kembali ke Halaman Akun</a>
+        <a href="index.html" class="kembali" style="color: #666; font-size: 13px; font-weight: normal; margin-top: 10px;">Lihat Etalase Utama</a>
     </div>
 
     <script>
@@ -76,11 +82,10 @@
             
             if (!session) {
                 alert("Akses ditolak! Silakan login terlebih dahulu.");
-                window.location.replace("login.html"); // Replace mencegah user menekan tombol back
+                window.location.replace("login.html"); 
             } else {
                 emailPenjualAktif = session.user.email;
-                document.getElementById('nama-email-aktif').innerText = emailPenjualAktif;
-                // Jika lolos, baru tampilkan wujud formulirnya
+                document.getElementById('nama-email-aktif').innerText = emailPenjualAktif.split('@')[0];
                 document.getElementById('wadah-utama').style.display = 'block';
             }
         }
@@ -156,7 +161,7 @@
             const urlVarianGabungan = arrayVarian.join(',');
 
             if(namaBarang === "" || hargaBarang === "" || stokBarang === "" || deskripsiBarang === "" || daftarFile.length === 0) {
-                alert("Tolong isi semua data utama dan pilih minimal 1 media!");
+                alert("Tolong isi semua data utama dan pilih minimal 1 foto/video!");
                 return;
             }
 

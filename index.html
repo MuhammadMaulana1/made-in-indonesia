@@ -30,8 +30,6 @@
         .tag-pemilik { font-size: 12px; color: #28a745; font-weight: bold; margin-bottom: 8px; display: block; }
         .tombol-hapus-produk { display: block; width: 100%; text-align: center; background-color: #dc3545; color: white; padding: 12px; border: none; border-radius: 5px; font-weight: bold; margin-top: 10px; cursor: pointer; }
         .tombol-hapus-produk:hover { background-color: #bd2130; }
-        
-        /* Desain teks identitas nama toko */
         .nama-toko-penjual { font-size: 13px; color: #666; margin-top: 0; margin-bottom: 12px; display: block; }
         
         #pesan-status { color: #666; font-style: italic; }
@@ -67,13 +65,14 @@
             const { data: { session } } = await dbToko.auth.getSession();
             const emailUserLogin = session ? session.user.email : null;
 
-            // 1. PEMBERSIHAN TANDA "+" DI MENU ATAS
+            // SARAN DIKABULKAN: Jual Barang diganti dengan "Akun Saya" ke arah akun.html
             if (emailUserLogin) {
+                const namaTokoMenu = emailUserLogin.split('@')[0];
                 wadahNavigasi.innerHTML = `
                     <div class="wadah-menu-login">
-                        <span>Toko: <strong>${emailUserLogin}</strong></span>
+                        <span>Toko: <strong>${namaTokoMenu}</strong></span>
                         <div>
-                            <a href="tambah-produk.html" class="btn-link-menu">Jual Barang</a>
+                            <a href="akun.html" class="btn-link-menu">Akun Saya</a>
                             <a href="#" class="btn-keluar-menu" onclick="prosesKeluarHalamanUtama(event)">Keluar</a>
                         </div>
                     </div>
@@ -153,7 +152,6 @@
                     `;
                 }
 
-                // 2. AMBIL EMAIL DAN TAMPILKAN SEBAGAI NAMA TOKO
                 const namaToko = barang.email_penjual ? barang.email_penjual.split('@')[0] : 'Umum';
 
                 const pesanWaAwal = `Halo, saya tertarik membeli ${barang.nama_barang} seharga Rp${hargaRupiahAwal}.`;
@@ -163,9 +161,7 @@
                     <div class="kartu-produk">
                         ${htmlMedia}
                         <h2 style="margin-top: 0; margin-bottom: 2px;">${barang.nama_barang}</h2>
-                        
                         <span class="nama-toko-penjual">Toko: <strong>${namaToko}</strong></span>
-                        
                         <p style="margin-top: 0; font-size: 14px; color: #555; white-space: pre-wrap; margin-bottom: 10px;">${barang.deskripsi}</p>
                         
                         ${htmlVarian}
