@@ -8,30 +8,24 @@
         * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 15px; text-align: center; }
         .wadah-toko { width: 100%; max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .kartu-produk { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fafafa; margin-top: 20px; text-align: left; overflow: hidden; }
+        
+        /* Kartu produk dibuat memiliki efek pointer agar tahu bisa diklik */
+        .kartu-produk { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fafafa; margin-top: 20px; text-align: left; overflow: hidden; cursor: pointer; transition: 0.2s; }
+        .kartu-produk:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-color: #bbb; }
         
         .galeri-media { display: flex; overflow-x: auto; gap: 10px; margin-bottom: 15px; padding-bottom: 5px; scroll-snap-type: x mandatory; }
-        .item-media { flex: 0 0 90%; height: 300px; object-fit: contain; border-radius: 5px; background-color: transparent; scroll-snap-align: center; }
+        .item-media { flex: 0 0 90%; height: 250px; object-fit: contain; border-radius: 5px; background-color: transparent; scroll-snap-align: center; }
         
-        .pilihan-varian p { margin: 10px 0 5px 0; font-weight: bold; font-size: 14px; }
-        .wadah-tombol-varian { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
-        .tombol-varian { padding: 8px 12px; border: 1px solid #ccc; background: white; border-radius: 5px; cursor: pointer; font-size: 14px; color: #333; transition: 0.2s; }
-        .tombol-varian.aktif { border-color: #25d366; color: #25d366; background: #e8f9ef; font-weight: bold; }
-        
-        .harga { color: #2ecc71; font-size: 20px; font-weight: bold; margin: 5px 0 15px 0; }
-        .tombol-beli { display: block; text-align: center; background-color: #25d366; color: white; padding: 12px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px; }
-        .tombol-beli:hover { background-color: #128c7e; }
+        .harga { color: #2ecc71; font-size: 20px; font-weight: bold; margin: 5px 0 10px 0; }
+        .tombol-detail { display: block; text-align: center; background-color: #007bff; color: white; padding: 12px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px; }
+        .tombol-detail:hover { background-color: #0056b3; }
         
         .link-jual { display: inline-block; margin-bottom: 20px; color: #007bff; text-decoration: none; font-weight: bold; padding: 10px 20px; border: 2px solid #007bff; border-radius: 5px; }
         .link-jual:hover { background-color: #007bff; color: white; }
         .wadah-menu-login { background: #eaf2f8; padding: 12px; border-radius: 5px; font-size: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .btn-link-menu { color: #007bff; text-decoration: none; font-weight: bold; }
         .btn-keluar-menu { color: #dc3545; text-decoration: none; font-weight: bold; margin-left: 10px; }
-        .tag-pemilik { font-size: 12px; color: #28a745; font-weight: bold; margin-bottom: 8px; display: block; }
-        .tombol-hapus-produk { display: block; width: 100%; text-align: center; background-color: #dc3545; color: white; padding: 12px; border: none; border-radius: 5px; font-weight: bold; margin-top: 10px; cursor: pointer; }
-        .tombol-hapus-produk:hover { background-color: #bd2130; }
-        .nama-toko-penjual { font-size: 13px; color: #666; margin-top: 0; margin-bottom: 12px; display: block; }
-        
+        .nama-toko-penjual { font-size: 13px; color: #666; margin-top: 0; margin-bottom: 8px; display: block; }
         #pesan-status { color: #666; font-style: italic; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -55,8 +49,6 @@
         const URL_SUPABASE = 'https://obdmfjjckdhzqbvhpung.supabase.co';
         const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
         const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
-        
-        const NOMOR_WA = "6281234567890"; 
 
         async function tampilkanProduk() {
             const wadahProduk = document.getElementById('daftar-produk');
@@ -65,7 +57,6 @@
             const { data: { session } } = await dbToko.auth.getSession();
             const emailUserLogin = session ? session.user.email : null;
 
-            // SARAN DIKABULKAN: Jual Barang diganti dengan "Akun Saya" ke arah akun.html
             if (emailUserLogin) {
                 const namaTokoMenu = emailUserLogin.split('@')[0];
                 wadahNavigasi.innerHTML = `
@@ -98,14 +89,6 @@
             data.forEach(barang => {
                 const hargaRupiahAwal = new Intl.NumberFormat('id-ID').format(barang.harga);
 
-                let tampilanStok = '';
-                const jumlahStok = parseInt(barang.stok || 0);
-                if (jumlahStok >= 51 && jumlahStok <= 100) {
-                    tampilanStok = '<p style="color: #f39c12; font-size: 14px; font-weight: bold; margin: 0;">Stok: &lt; 100</p>'; 
-                } else if (jumlahStok <= 50) {
-                    tampilanStok = `<p style="color: #e74c3c; font-size: 14px; font-weight: bold; margin: 0;">Sisa Stok: ${jumlahStok}</p>`;
-                }
-
                 let htmlMedia = '';
                 if (barang.foto_url) {
                     const daftarLink = barang.foto_url.split(',');
@@ -120,7 +103,7 @@
                     htmlMedia = '<div class="galeri-media">';
                     daftarLink.forEach(link => {
                         if (link.toLowerCase().match(/\.(mp4|mov|webm)$/i)) {
-                            htmlMedia += `<video src="${link}" class="item-media" controls preload="metadata"></video>`;
+                            htmlMedia += `<video src="${link}" class="item-media" controls preload="metadata" onclick="event.stopPropagation()"></video>`;
                         } else {
                             htmlMedia += `<img src="${link}" class="item-media" alt="${barang.nama_barang}">`;
                         }
@@ -128,86 +111,21 @@
                     htmlMedia += '</div>';
                 }
 
-                let htmlVarian = '';
-                if (barang.varian) {
-                    const listVarian = barang.varian.split(',').map(v => v.trim()).filter(v => v !== '');
-                    if (listVarian.length > 0) {
-                        htmlVarian += `<div class="pilihan-varian"><p>Pilih Varian:</p><div class="wadah-tombol-varian">`;
-                        listVarian.forEach(v => {
-                            const pecahan = v.split(':'); 
-                            const namaVarian = pecahan[0];
-                            const hargaVarianSpesifik = pecahan[1] || barang.harga;
-                            
-                            htmlVarian += `<button class="tombol-varian" onclick="pilihVarian(this, '${barang.id}', '${barang.nama_barang}', '${hargaVarianSpesifik}', '${namaVarian}')">${namaVarian}</button>`;
-                        });
-                        htmlVarian += `</div></div>`;
-                    }
-                }
-
-                let htmlTombolHapus = '';
-                if (emailUserLogin && barang.email_penjual === emailUserLogin) {
-                    htmlTombolHapus = `
-                        <span class="tag-pemilik">✓ Ini Produk Tokomu</span>
-                        <button class="tombol-hapus-produk" onclick="hapusProdukOtomatis('${barang.id}', '${barang.nama_barang}')">Hapus Produk Ini</button>
-                    `;
-                }
-
                 const namaToko = barang.email_penjual ? barang.email_penjual.split('@')[0] : 'Umum';
 
-                const pesanWaAwal = `Halo, saya tertarik membeli ${barang.nama_barang} seharga Rp${hargaRupiahAwal}.`;
-                const linkWaAwal = `https://wa.me/${NOMOR_WA}?text=${encodeURIComponent(pesanWaAwal)}`;
-                
+                // Kartu produk sekarang mengarah ke detail-produk.html membawa ID unik barang
                 const elemenProduk = `
-                    <div class="kartu-produk">
+                    <div class="kartu-produk" onclick="window.location.href='detail-produk.html?id=${barang.id}'">
                         ${htmlMedia}
-                        <h2 style="margin-top: 0; margin-bottom: 2px;">${barang.nama_barang}</h2>
+                        <h2 style="margin-top: 0; margin-bottom: 2px; color:#333;">${barang.nama_barang}</h2>
                         <span class="nama-toko-penjual">Toko: <strong>${namaToko}</strong></span>
-                        <p style="margin-top: 0; font-size: 14px; color: #555; white-space: pre-wrap; margin-bottom: 10px;">${barang.deskripsi}</p>
-                        
-                        ${htmlVarian}
-                        ${tampilanStok}
-                        
-                        <p class="harga" id="harga-${barang.id}">Rp ${hargaRupiahAwal}</p>
-                        <a href="${linkWaAwal}" id="wa-${barang.id}" class="tombol-beli" target="_blank">Beli via WhatsApp</a>
-                        
-                        ${htmlTombolHapus}
+                        <p class="harga">Rp ${hargaRupiahAwal}</p>
+                        <a href="detail-produk.html?id=${barang.id}" class="tombol-detail">Lihat Detail & Beli</a>
                     </div>
                 `;
                 
                 wadahProduk.innerHTML += elemenProduk;
             });
-        }
-
-        function pilihVarian(elemenTombol, idProduk, namaBarang, hargaVarian, namaVarian) {
-            const wadah = elemenTombol.parentElement;
-            const semuaTombol = wadah.querySelectorAll('.tombol-varian');
-            semuaTombol.forEach(btn => btn.classList.remove('aktif'));
-            
-            elemenTombol.classList.add('aktif');
-
-            const hargaFormat = new Intl.NumberFormat('id-ID').format(hargaVarian);
-            document.getElementById(`harga-${idProduk}`).innerText = `Rp ${hargaFormat}`;
-
-            const tombolWa = document.getElementById(`wa-${idProduk}`);
-            const pesanWaBaru = `Halo, saya tertarik membeli ${namaBarang} (Varian: ${namaVarian}) seharga Rp${hargaFormat}.`;
-            tombolWa.href = `https://wa.me/${NOMOR_WA}?text=${encodeURIComponent(pesanWaBaru)}`;
-        }
-
-        async function hapusProdukOtomatis(idProduk, namaBarang) {
-            const konfirmasi = confirm(`Apakah kamu yakin ingin menghapus produk "${namaBarang}" dari etalase tokomu?`);
-            if (!konfirmasi) return; 
-
-            const { error } = await dbToko
-                .from('produk')
-                .delete()
-                .eq('id', idProduk);
-
-            if (error) {
-                alert("Yah, gagal menghapus produk: " + error.message);
-            } else {
-                alert("Sukses! Produk berhasil dihapus dari etalase.");
-                tampilkanProduk(); 
-            }
         }
 
         async function prosesKeluarHalamanUtama(event) {
