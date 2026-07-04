@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keranjang Belanja - Made in Indonesia</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 15px; }
+        .wadah-keranjang { width: 100%; max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h2 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 15px; color: #333; text-align: left; }
+        
+        /* GAYA DAFTAR PRODUK DALAM KERANJANG */
+        .item-keranjang { display: flex; gap: 15px; border-bottom: 1px solid #eee; padding: 15px 0; align-items: center; }
+        .gambar-produk-keranjang { width: 70px; height: 70px; object-fit: cover; border-radius: 5px; background: #fafafa; border: 1px solid #ddd; }
+        .detail-info-produk { flex: 1; text-align: left; }
+        .nama-produk { font-weight: bold; font-size: 16px; color: #333; margin: 0 0 4px 0; }
+        .varian-produk { font-size: 13px; color: #777; margin: 0 0 8px 0; }
+        .harga-produk { color: #2ecc71; font-weight: bold; font-size: 15px; margin: 0; }
+        
+        /* GAYA TOMBOL HITUNG QUANTITY (PLUS MINUS) */
+        .pengatur-jumlah { display: flex; align-items: center; gap: 5px; }
+        .btn-hitung { background: #e0e0e0; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn-hitung:hover { background: #ccc; }
+        .angka-jumlah { font-weight: bold; width: 25px; text-align: center; font-size: 14px; }
+        .btn-buang { background: #ff4d4d; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 10px; font-weight: bold;}
+        
+        /* BOX TOTAL RINGKASAN HARGA */
+        .kotak-total { margin-top: 25px; background: #fdfdfd; border: 1px solid #ddd; padding: 20px; border-radius: 8px; text-align: right; }
+        .teks-total { font-size: 18px; color: #444; margin-bottom: 5px; }
+        .angka-total { font-size: 26px; font-weight: bold; color: #2ecc71; margin-bottom: 20px; }
+        
+        .btn-checkout { display: block; width: 100%; text-align: center; background-color: #ff5722; color: white; padding: 15px; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; text-decoration: none; }
+        .btn-checkout:hover { background-color: #e64a19; }
+        .btn-kembali { display: inline-block; text-align: center; margin-top: 15px; color: #007bff; text-decoration: none; font-size: 14px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="wadah-keranjang">
+        <h2>🛒 Keranjang Belanja Saya</h2>
+        
+        <div id="list-belanjaan">
+            <p style="color:#777; font-style:italic; margin: 30px 0;">Keranjang belanjamu kosong melongpong...</p>
+        </div>
+
+        <div class="kotak-total" id="ringkasan-bayar" style="display: none;">
+            <div class="teks-total">Total Harga Belanja:</div>
+            <div class="angka-total" id="total-rupiah-layar">Rp 0</div>
+            
+            <button class="btn-checkout" onclick="lanjutBayarTahapTiga()">Lanjut ke Pembayaran (Checkout)</button>
+        </div>
+
+        <a href="index.html" class="btn-kembali">← Kembali Lanjut Belanja</a>
+    </div>
+
+    <script>
+        // Tampilkan daftar belanjaan saat halaman dibuka
+        function muatIsiKeranjang() {
+            const wadahList = document.getElementById('list-belanjaan');
+            const wadahRingkasan = document.getElementById('ringkasan-bayar');
+            
+            // Ambil data belanjaan dari LocalStorage
+            let keranjang = JSON.parse(localStorage.getItem('keranjang')) || [];
+
+            if (keranjang.length === 0) {
+                wadahList.innerHTML = `<p style="color:#777; font-style:italic; margin: 40px 0; text-align:center;">Keranjang belanjamu masih kosong. Yuk cari barang menarik di etalase!</p>`;
+                wadahRingkasan.style.display = "none";
+                return;
+            }
+
+            wadahList.innerHTML = "";
+            wadahRingkasan.style.display = "block";
+            let totalBiayaSeluruhnya = 0;
+
+            keranjang.forEach((item, indeks) => {
+                let subTotalItem = item.harga * item.jumlah;
+                totalBiayaSeluruhnya += subTotalItem;
+
+                let fotoTampil = item.foto || "https://via.placeholder.com/70";
+
+                let htmlBaris = `
+                    <div class="item-keranjang">
+                        <img src="${fotoTampil}" class="gambar-produk-keranjang" alt="${item.nama}">
+                        <div class="detail-info-produk">
+                            <p class="nama-produk">${item.nama}</p>
+                            <p class="varian-produk">Varian: ${item.varian}</p>
+                            <p class="harga-produk">Rp ${new Intl.NumberFormat('id-ID').format(item.harga)}</p>
+                        </div>
+                        <div class="pengatur-jumlah">
+                            <button class="btn-hitung" onclick="ubahQty(${indeks}, -1)">-</button>
+                            <span class="angka-jumlah">${item.jumlah}</span>
+                            <button class="btn-hitung" onclick="ubahQty(${indeks}, 1)">+</button>
+                            <button class="btn-buang" onclick="buangItem(${indeks})">Hapus</button>
+                        </div>
+                    </div>
+                `;
+                wadahList.innerHTML += htmlBaris;
+            });
+
+            // Update nominal total di layar
+            document.getElementById('total-rupiah-layar').innerText = `Rp ${new Intl.NumberFormat('id-ID').format(totalBiayaSeluruhnya)}`;
+        }
+
+        // Fungsi Tombol Tambah (+) dan Kurang (-) Kuantitas
+        function ubahQty(indeks, perubahan) {
+            let keranjang = JSON.parse(localStorage.getItem('keranjang')) || [];
+            let jumlahBaru = parseInt(keranjang[indeks].jumlah) + perubahan;
+
+            if (jumlahBaru <= 0) {
+                // Jika dikurangi sampai nol, otomatis tawarkan hapus
+                buangItem(indeks);
+            } else {
+                keranjang[indeks].jumlah = jumlahBaru;
+                localStorage.setItem('keranjang', JSON.stringify(keranjang));
+                muatIsiKeranjang(); // Segarkan tampilan layar
+            }
+        }
+
+        // Fungsi Tombol Hapus Barang dari Keranjang
+        function buangItem(indeks) {
+            let keranjang = JSON.parse(localStorage.getItem('keranjang')) || [];
+            keranjang.splice(indeks, 1); // Buang data dari array
+            localStorage.setItem('keranjang', JSON.stringify(keranjang));
+            muatIsiKeranjang(); // Segarkan tampilan layar
+        }
+
+        function lanjutBayarTahapTiga() {
+            alert("Bagus! Sistem keranjang belanja internal berfungsi 100%.\n\nSekarang mari kita lanjut ke TAHAP 3 untuk membuat tabel pesanan di Supabase dan form pengisian alamat pengiriman!");
+        }
+
+        muatIsiKeranjang();
+    </script>
+</body>
+</html>

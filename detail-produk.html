@@ -24,7 +24,6 @@
         .sub-judul { font-weight: bold; font-size: 16px; color: #444; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; margin-bottom: 8px; }
         .deskripsi { font-size: 15px; color: #555; line-height: 1.6; white-space: pre-wrap; margin-bottom: 25px; }
         
-        /* DESAIN ACTION BUTTON INTERNAL BARU */
         .grup-tombol-beli { display: flex; gap: 12px; margin-top: 25px; }
         .btn-aksi { flex: 1; padding: 15px; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; text-align: center; transition: 0.2s; text-decoration: none; }
         .btn-keranjang { background-color: #fff; color: #007bff; border: 2px solid #007bff; }
@@ -40,9 +39,8 @@
 
     <div class="wadah-detail">
         <a href="index.html" class="btn-kembali">← Kembali ke Etalase</a>
-        
         <div id="konten-produk">
-            <p style="color:#666; font-style:italic;">Memuat detail produk ke laci...</p>
+            <p style="color:#666; font-style:italic;">Memuat detail produk...</p>
         </div>
     </div>
 
@@ -51,32 +49,32 @@
         const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
         const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
 
+        // Variabel global pencatat produk aktif
+        let idProdukAktif = "";
+        let namaProdukAktif = "";
         let hargaAktif = 0;
-        let varianAktif = "";
+        let varianAktif = "Normal";
+        let linkFotoCover = ""; 
 
         async function muatDetailProduk() {
             const wadah = document.getElementById('konten-produk');
-            
-            // Mengambil ID produk dari parameter URL (?id=...)
             const urlParams = new URLSearchParams(window.location.search);
-            const idProduk = urlParams.get('id');
+            idProdukAktif = urlParams.get('id');
 
-            if (!idProduk) {
-                wadah.innerHTML = "<p style='color:red;'>Produk tidak ditemukan!</p>";
-                return;
+            if (!idProdukAktif) {
+                wadah.innerHTML = "<p style='color:red;'>Produk tidak ditemukan!</p>"; return;
             }
 
-            const { data: barang, error } = await dbToko.from('produk').select('*').eq('id', idProduk).single();
+            const { data: barang, error } = await dbToko.from('produk').select('*').eq('id', idProdukAktif).single();
 
             if (error || !barang) {
-                wadah.innerHTML = "<p style='color:red;'>Gagal memuat barang.</p>";
-                return;
+                wadah.innerHTML = "<p style='color:red;'>Gagal memuat barang.</p>"; return;
             }
 
-            // Set harga dasar di awal
+            // Catat data utama barang ke sistem variabel global
+            namaProdukAktif = barang.nama_barang;
             hargaAktif = barang.harga;
 
-            // 1. Mengolah Galeri Media Slider
             let htmlMedia = '';
             if (barang.foto_url) {
                 const daftarLink = barang.foto_url.split(',');
@@ -88,6 +86,10 @@
                     return 0;
                 });
                 
+                // Cari foto pertama (bukan video) untuk dijadikan gambar cover di invoice/keranjang belanja
+                const linkFotoSaja = daftarLink.find(link => !link.toLowerCase().match(/\.(mp4|mov|webm)$/i));
+                linkFotoCover = linkFotoSaja || daftarLink[0]; // Fallback jika isinya video semua
+
                 htmlMedia = '<div class="galeri-media">';
                 daftarLink.forEach(link => {
                     if (link.toLowerCase().match(/\.(mp4|mov|webm)$/i)) {
@@ -99,7 +101,6 @@
                 htmlMedia += '</div>';
             }
 
-            // 2. Mengolah Pilihan Varian Tokopedia Style
             let htmlVarian = '';
             if (barang.varian) {
                 const listVarian = barang.varian.split(',').map(v => v.trim()).filter(v => v !== '');
@@ -110,7 +111,6 @@
                         const namaVarian = pecahan[0];
                         const hargaVarian = pecahan[1] || barang.harga;
                         
-                        // Buat varian pertama aktif otomatis sebagai default
                         const kelasAktif = index === 0 ? 'aktif' : '';
                         if(index === 0) {
                             hargaAktif = hargaVarian;
@@ -126,19 +126,14 @@
             const namaToko = barang.email_penjual ? barang.email_penjual.split('@')[0] : 'Umum';
             const hargaFormat = new Intl.NumberFormat('id-ID').format(hargaAktif);
 
-            // Susun kesatuan struktur halaman detail
             wadah.innerHTML = `
                 ${htmlMedia}
                 <h1>${barang.nama_barang}</h1>
                 <span class="nama-toko">Oleh Toko: ${namaToko}</span>
-                
                 <div class="harga" id="harga-detail-layar">Rp ${hargaFormat}</div>
-                
                 ${htmlVarian}
-                
                 <div class="sub-judul">Detail Deskripsi Barang</div>
                 <div class="deskripsi">${barang.deskripsi}</div>
-                
                 <div class="sub-judul">Status Ketersediaan</div>
                 <p style="font-size: 15px; margin: 5px 0 25px 0;">Stok Tersedia: <strong>${barang.stok} unit</strong></p>
 
@@ -149,7 +144,6 @@
             `;
         }
 
-        // Fungsi interaktif tombol varian harga dinamis
         function ubahVarianDetail(tombol, hargaBaru, namaVarian) {
             const semuaTombol = tombol.parentElement.querySelectorAll('.tombol-varian');
             semuaTombol.forEach(btn => btn.classList.remove('aktif'));
@@ -162,14 +156,37 @@
             document.getElementById('harga-detail-layar').innerText = `Rp ${hargaFormat}`;
         }
 
-        // Pemicu Klik Keranjang (Akan kita fungsikan di langkah berikutnya)
+        // HIDUPKAN TOMBOL KERANJANG
         function aksiKeranjang() {
-            alert(`Fitur masuk keranjang dicatat sementara:\nVarian: ${varianAktif}\nHarga: Rp${new Intl.NumberFormat('id-ID').format(hargaAktif)}\n\nSiap lanjut ke pembuatan halaman keranjang belanja?`);
+            // Ambil isi laci keranjang yang lama di browser (jika ada)
+            let isiKeranjang = JSON.parse(localStorage.getItem('keranjang')) || [];
+
+            // Periksa apakah produk dengan varian yang persis sama sudah pernah dimasukkan?
+            let barangSama = isiKeranjang.find(item => item.id === idProdukAktif && item.varian === varianAktif);
+
+            if (barangSama) {
+                barangSama.jumlah = parseInt(barangSama.jumlah) + 1; // Jika ada, cukup naikkan kuantitasnya +1
+            } else {
+                // Jika belum ada, buat baris belanjaan baru
+                isiKeranjang.push({
+                    id: idProdukAktif,
+                    nama: namaProdukAktif,
+                    varian: varianAktif,
+                    harga: parseInt(hargaAktif),
+                    foto: linkFotoCover,
+                    jumlah: 1
+                });
+            }
+
+            // Kunci kembali ke dalam LocalStorage browser
+            localStorage.setItem('keranjang', JSON.stringify(isiKeranjang));
+            alert(`Sukses! "${namaProdukAktif} (${varianAktif})" telah dimasukkan ke keranjang belanja.`);
         }
 
-        // Pemicu Klik Beli Langsung (Akan kita fungsikan di langkah berikutnya)
         function aksiBeliLangsung() {
-            alert("Tombol Beli Langsung diklik! Kita akan membuat form checkout alamat setelah ini.");
+            // Untuk beli langsung alurnya: masukkan ke keranjang, lalu langsung lompat ke halaman keranjang
+            aksiKeranjang();
+            window.location.href = "keranjang.html";
         }
 
         muatDetailProduk();
