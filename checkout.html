@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout Pembayaran - Made in Indonesia</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 15px; }
+        .wadah-checkout { width: 100%; max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 15px;}
+        
+        .ringkasan-box { background: #e8f9ef; border: 1px solid #25d366; padding: 15px; border-radius: 8px; margin-bottom: 25px; }
+        .ringkasan-box h3 { margin: 0 0 10px 0; font-size: 16px; color: #218838; }
+        .teks-ringkasan { font-size: 14px; color: #444; line-height: 1.6; white-space: pre-wrap; margin-bottom: 10px; }
+        .total-final { font-size: 18px; font-weight: bold; color: #dc3545; border-top: 1px dashed #ccc; padding-top: 10px; }
+
+        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; color: #333; }
+        input[type="text"], input[type="number"], textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
+        
+        .btn-pesan { display: block; width: 100%; text-align: center; background-color: #ff5722; color: white; padding: 15px; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 25px; }
+        .btn-pesan:hover { background-color: #e64a19; }
+        .btn-kembali { display: block; text-align: center; margin-top: 15px; color: #007bff; text-decoration: none; font-size: 14px; font-weight: bold; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="wadah-checkout" id="wadah-konten-checkout" style="display: none;">
+        <h2>Pengiriman & Pembayaran</h2>
+        
+        <div class="ringkasan-box">
+            <h3>Barang yang dibeli:</h3>
+            <div id="teks-daftar-barang" class="teks-ringkasan">Memuat keranjang...</div>
+            <div class="total-final" id="teks-total-bayar">Total: Rp 0</div>
+        </div>
+
+        <label>Nama Lengkap Penerima</label>
+        <input type="text" id="nama" placeholder="Contoh: Budi Santoso">
+
+        <label>Nomor WhatsApp Aktif</label>
+        <input type="number" id="wa" placeholder="Contoh: 08123456789">
+
+        <label>Alamat Lengkap Pengiriman</label>
+        <textarea id="alamat" rows="4" placeholder="Sertakan nama jalan, RT/RW, desa, kecamatan, kota, dan kodepos agar kurir tidak nyasar..."></textarea>
+
+        <button class="btn-pesan" id="tombol-buat-pesanan" onclick="kirimPesananKeSistem()">Buat Pesanan Sekarang</button>
+        <a href="keranjang.html" class="btn-kembali">← Kembali ke Keranjang</a>
+    </div>
+
+    <script>
+        const URL_SUPABASE = 'https://obdmfjjckdhzqbvhpung.supabase.co';
+        const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
+        const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
+
+        let keranjangSistem = [];
+        let totalBiayaSistem = 0;
+        let teksRekapPesanan = "";
+        let emailPembeliAktif = "";
+
+        // Proteksi keamanan halaman checkout wajib login
+        async function muatDataCheckout() {
+            const { data: { session } } = await dbToko.auth.getSession();
+            if (!session) {
+                alert("Akses ditolak! Silakan login terlebih dahulu untuk melakukan pengiriman.");
+                window.location.replace("login.html");
+                return;
+            }
+            
+            // Catat email pembeli dari akun yang aktif login
+            emailPembeliAktif = session.user.email;
+
+            keranjangSistem = JSON.parse(localStorage.getItem('keranjang')) || [];
+            
+            if (keranjangSistem.length === 0) {
+                alert("Keranjangmu kosong!");
+                window.location.replace("index.html");
+                return;
+            }
+
+            // Tampilkan halaman jika lolos pengecekan
+            document.getElementById('wadah-konten-checkout').style.display = "block";
+
+            let htmlRekap = "";
+            totalBiayaSistem = 0;
+
+            keranjangSistem.forEach(item => {
+                let subTotal = item.harga * item.jumlah;
+                totalBiayaSistem += subTotal;
+                htmlRekap += `• ${item.jumlah}x ${item.nama} (${item.varian}) - Rp ${new Intl.NumberFormat('id-ID').format(subTotal)}\n`;
+            });
+
+            teksRekapPesanan = htmlRekap;
+            document.getElementById('teks-daftar-barang').innerText = htmlRekap;
+            document.getElementById('teks-total-bayar').innerText = `Total Tagihan: Rp ${new Intl.NumberFormat('id-ID').format(totalBiayaSistem)}`;
+        }
+
+        async function kirimPesananKeSistem() {
+            const inputNama = document.getElementById('nama').value.trim();
+            const inputWA = document.getElementById('wa').value.trim();
+            const inputAlamat = document.getElementById('alamat').value.trim();
+            const tombol = document.getElementById('tombol-buat-pesanan');
+
+            if (inputNama === "" || inputWA === "" || inputAlamat === "") {
+                alert("Mohon isi data pengiriman dengan lengkap!");
+                return;
+            }
+
+            tombol.innerText = "Memproses Pesananmu...";
+            tombol.disabled = true;
+
+            // Mengirim data dengan menyertakan email pembeli asli hasil login
+            const { data, error } = await dbToko.from('pesanan').insert([
+                { 
+                    nama_pembeli: inputNama, 
+                    no_whatsapp: inputWA, 
+                    alamat_pengiriman: inputAlamat,
+                    detail_pesanan: teksRekapPesanan,
+                    total_bayar: totalBiayaSistem,
+                    status_pesanan: "Pesanan Baru",
+                    email_pembeli: emailPembeliAktif
+                }
+            ]);
+
+            if (error) {
+                alert("Gagal mengirim pesanan: " + error.message);
+                tombol.innerText = "Buat Pesanan Sekarang";
+                tombol.disabled = false;
+            } else {
+                localStorage.removeItem('keranjang'); // Bersihkan keranjang belanja
+                alert("Pesanan Berhasil Dibuat! Penjual akan segera memproses barangmu.");
+                window.location.replace("index.html");
+            }
+        }
+
+        muatDataCheckout();
+    </script>
+</body>
+</html>

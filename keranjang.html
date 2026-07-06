@@ -34,10 +34,14 @@
         .btn-checkout:hover { background-color: #e64a19; }
         .btn-kembali { display: inline-block; text-align: center; margin-top: 15px; color: #007bff; text-decoration: none; font-size: 14px; font-weight: bold; }
     </style>
+    
+    <!-- WAJIB ADA: Sambungan ke library Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-    <div class="wadah-keranjang">
+    <!-- Wadah ini disembunyikan dulu sampai sistem selesai cek login -->
+    <div class="wadah-keranjang" id="area-keranjang" style="display: none;">
         <h2>🛒 Keranjang Belanja Saya</h2>
         
         <div id="list-belanjaan">
@@ -55,12 +59,27 @@
     </div>
 
     <script>
-        // Tampilkan daftar belanjaan saat halaman dibuka
-        function muatIsiKeranjang() {
+        // Inisialisasi koneksi Supabase
+        const URL_SUPABASE = 'https://obdmfjjckdhzqbvhpung.supabase.co';
+        const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
+        const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
+
+        async function muatIsiKeranjang() {
+            // 1. Sistem Kunci Pengaman Login
+            const { data: { session } } = await dbToko.auth.getSession();
+            if (!session) {
+                alert("Silakan masuk (login) untuk melihat keranjang belanjamu.");
+                window.location.replace("login.html");
+                return;
+            }
+
+            // Jika lolos, tampilkan halaman keranjangnya
+            document.getElementById('area-keranjang').style.display = "block";
+
             const wadahList = document.getElementById('list-belanjaan');
             const wadahRingkasan = document.getElementById('ringkasan-bayar');
             
-            // Ambil data belanjaan dari LocalStorage
+            // Ambil data keranjang dari penyimpanan HP/Browser
             let keranjang = JSON.parse(localStorage.getItem('keranjang')) || [];
 
             if (keranjang.length === 0) {
@@ -73,6 +92,7 @@
             wadahRingkasan.style.display = "block";
             let totalBiayaSeluruhnya = 0;
 
+            // Merangkai daftar barang di HTML
             keranjang.forEach((item, indeks) => {
                 let subTotalItem = item.harga * item.jumlah;
                 totalBiayaSeluruhnya += subTotalItem;
@@ -98,7 +118,7 @@
                 wadahList.innerHTML += htmlBaris;
             });
 
-            // Update nominal total di layar
+            // Tampilkan total biaya
             document.getElementById('total-rupiah-layar').innerText = `Rp ${new Intl.NumberFormat('id-ID').format(totalBiayaSeluruhnya)}`;
         }
 
@@ -108,27 +128,28 @@
             let jumlahBaru = parseInt(keranjang[indeks].jumlah) + perubahan;
 
             if (jumlahBaru <= 0) {
-                // Jika dikurangi sampai nol, otomatis tawarkan hapus
                 buangItem(indeks);
             } else {
                 keranjang[indeks].jumlah = jumlahBaru;
                 localStorage.setItem('keranjang', JSON.stringify(keranjang));
-                muatIsiKeranjang(); // Segarkan tampilan layar
+                muatIsiKeranjang(); 
             }
         }
 
-        // Fungsi Tombol Hapus Barang dari Keranjang
+        // Fungsi Tombol Hapus
         function buangItem(indeks) {
             let keranjang = JSON.parse(localStorage.getItem('keranjang')) || [];
-            keranjang.splice(indeks, 1); // Buang data dari array
+            keranjang.splice(indeks, 1); 
             localStorage.setItem('keranjang', JSON.stringify(keranjang));
-            muatIsiKeranjang(); // Segarkan tampilan layar
+            muatIsiKeranjang(); 
         }
 
+        // Fungsi Arah Tombol Lanjut Pembayaran
         function lanjutBayarTahapTiga() {
-            alert("Bagus! Sistem keranjang belanja internal berfungsi 100%.\n\nSekarang mari kita lanjut ke TAHAP 3 untuk membuat tabel pesanan di Supabase dan form pengisian alamat pengiriman!");
+            window.location.href = "checkout.html";
         }
 
+        // Jalankan fungsi saat halaman dibuka
         muatIsiKeranjang();
     </script>
 </body>
