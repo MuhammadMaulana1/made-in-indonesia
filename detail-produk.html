@@ -49,7 +49,6 @@
         const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
         const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
 
-        // Variabel global pencatat produk aktif
         let idProdukAktif = "";
         let namaProdukAktif = "";
         let hargaAktif = 0;
@@ -71,7 +70,6 @@
                 wadah.innerHTML = "<p style='color:red;'>Gagal memuat barang.</p>"; return;
             }
 
-            // Catat data utama barang ke sistem variabel global
             namaProdukAktif = barang.nama_barang;
             hargaAktif = barang.harga;
 
@@ -86,9 +84,8 @@
                     return 0;
                 });
                 
-                // Cari foto pertama (bukan video) untuk dijadikan gambar cover di invoice/keranjang belanja
                 const linkFotoSaja = daftarLink.find(link => !link.toLowerCase().match(/\.(mp4|mov|webm)$/i));
-                linkFotoCover = linkFotoSaja || daftarLink[0]; // Fallback jika isinya video semua
+                linkFotoCover = linkFotoSaja || daftarLink[0]; 
 
                 htmlMedia = '<div class="galeri-media">';
                 daftarLink.forEach(link => {
@@ -138,7 +135,7 @@
                 <p style="font-size: 15px; margin: 5px 0 25px 0;">Stok Tersedia: <strong>${barang.stok} unit</strong></p>
 
                 <div class="grup-tombol-beli">
-                    <button class="btn-aksi btn-keranjang" onclick="aksiKeranjang()">🛒 + Keranjang</button>
+                    <button class="btn-aksi btn-keranjang" onclick="aksiKeranjang(false)">🛒 + Keranjang</button>
                     <button class="btn-aksi btn-beli-langsung" onclick="aksiBeliLangsung()">Beli Langsung</button>
                 </div>
             `;
@@ -156,18 +153,29 @@
             document.getElementById('harga-detail-layar').innerText = `Rp ${hargaFormat}`;
         }
 
-        // HIDUPKAN TOMBOL KERANJANG
-        function aksiKeranjang() {
-            // Ambil isi laci keranjang yang lama di browser (jika ada)
-            let isiKeranjang = JSON.parse(localStorage.getItem('keranjang')) || [];
+        // FUNGSI BARU: PENGECEKAN STATUS LOGIN PEMBELI
+        async function validasiLoginPembeli() {
+            const { data: { session } } = await dbToko.auth.getSession();
+            if (!session) {
+                alert("Ups! Kamu harus punya akun dan masuk (login) terlebih dahulu untuk mulai berbelanja.");
+                window.location.href = "login.html";
+                return false;
+            }
+            return true;
+        }
 
-            // Periksa apakah produk dengan varian yang persis sama sudah pernah dimasukkan?
+        // FUNGSI KERANJANG DIUBAH MENJADI ASYNC AGAR BISA MENUNGGU PENGECEKAN
+        async function aksiKeranjang(dariBeliLangsung) {
+            // Cek apakah pembeli sudah login
+            const bolehBeli = await validasiLoginPembeli();
+            if (!bolehBeli) return; // Jika belum, hentikan proses penyimpanan keranjang
+
+            let isiKeranjang = JSON.parse(localStorage.getItem('keranjang')) || [];
             let barangSama = isiKeranjang.find(item => item.id === idProdukAktif && item.varian === varianAktif);
 
             if (barangSama) {
-                barangSama.jumlah = parseInt(barangSama.jumlah) + 1; // Jika ada, cukup naikkan kuantitasnya +1
+                barangSama.jumlah = parseInt(barangSama.jumlah) + 1; 
             } else {
-                // Jika belum ada, buat baris belanjaan baru
                 isiKeranjang.push({
                     id: idProdukAktif,
                     nama: namaProdukAktif,
@@ -178,15 +186,21 @@
                 });
             }
 
-            // Kunci kembali ke dalam LocalStorage browser
             localStorage.setItem('keranjang', JSON.stringify(isiKeranjang));
-            alert(`Sukses! "${namaProdukAktif} (${varianAktif})" telah dimasukkan ke keranjang belanja.`);
+            
+            // Tampilkan alert hanya jika tombol ditekan langsung (bukan dari tombol Beli Langsung)
+            if (!dariBeliLangsung) {
+                alert(`Sukses! "${namaProdukAktif} (${varianAktif})" telah dimasukkan ke keranjang belanja.`);
+            }
         }
 
-        function aksiBeliLangsung() {
-            // Untuk beli langsung alurnya: masukkan ke keranjang, lalu langsung lompat ke halaman keranjang
-            aksiKeranjang();
-            window.location.href = "keranjang.html";
+        async function aksiBeliLangsung() {
+            // Cek login juga berlaku untuk Beli Langsung
+            const bolehBeli = await validasiLoginPembeli();
+            if (!bolehBeli) return;
+
+            await aksiKeranjang(true);
+            window.location.href = "checkout.html";
         }
 
         muatDetailProduk();
