@@ -25,7 +25,6 @@
         .btn-keluar-menu { color: #dc3545; text-decoration: none; font-weight: bold; margin-left: 10px; }
         .nama-toko-penjual { font-size: 13px; color: #666; margin-top: 0; margin-bottom: 8px; display: block; }
         
-        /* GAYA TOMBOL UTAMAKAN KERANJANG BELANJA */
         .wadah-nav-aksi { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
         .btn-keranjang-nav { background-color: #ff9800; color: white; text-decoration: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; font-size: 14px; }
         .btn-keranjang-nav:hover { background-color: #e65100; }
@@ -59,24 +58,29 @@
         const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
         const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
         
-        // Fungsi menghitung total item di keranjang belanja
-        function hitungBadgeKeranjang() {
-            const keranjang = JSON.parse(localStorage.getItem('keranjang')) || [];
-            let totalBarang = 0;
-            keranjang.forEach(item => {
-                totalBarang += parseInt(item.jumlah);
-            });
-            document.getElementById('angka-badge-nav').innerText = totalBarang;
-        }
-
         async function tampilkanProduk() {
-            hitungBadgeKeranjang(); // Jalankan hitung keranjang di awal
-            
             const wadahProduk = document.getElementById('daftar-produk');
             const wadahNavigasi = document.getElementById('navigasi-atas');
 
             const { data: { session } } = await dbToko.auth.getSession();
             const emailUserLogin = session ? session.user.email : null;
+
+            // FUNGSI HITUNG KERANJANG BERDASARKAN EMAIL PRIVAT
+            function hitungBadgeKeranjang(emailUser) {
+                if (!emailUser) {
+                    document.getElementById('angka-badge-nav').innerText = "0";
+                    return;
+                }
+                const kunciPrivat = 'keranjang_' + emailUser;
+                const keranjang = JSON.parse(localStorage.getItem(kunciPrivat)) || [];
+                let totalBarang = 0;
+                keranjang.forEach(item => {
+                    totalBarang += parseInt(item.jumlah);
+                });
+                document.getElementById('angka-badge-nav').innerText = totalBarang;
+            }
+
+            hitungBadgeKeranjang(emailUserLogin); 
 
             if (emailUserLogin) {
                 const namaTokoMenu = emailUserLogin.split('@')[0];
@@ -95,15 +99,8 @@
 
             const { data, error } = await dbToko.from('produk').select('*').order('created_at', { ascending: false });
 
-            if (error) {
-                wadahProduk.innerHTML = '<p style="color:red;">Gagal memuat barang: ' + error.message + '</p>';
-                return;
-            }
-
-            if (data.length === 0) {
-                wadahProduk.innerHTML = '<p>Belum ada barang yang dijual.</p>';
-                return;
-            }
+            if (error) { wadahProduk.innerHTML = '<p style="color:red;">Gagal memuat barang: ' + error.message + '</p>'; return; }
+            if (data.length === 0) { wadahProduk.innerHTML = '<p>Belum ada barang yang dijual.</p>'; return; }
 
             wadahProduk.innerHTML = '';
 
@@ -143,7 +140,6 @@
                         <a href="detail-produk.html?id=${barang.id}" class="tombol-detail">Lihat Detail & Beli</a>
                     </div>
                 `;
-                
                 wadahProduk.innerHTML += elemenProduk;
             });
         }
@@ -151,7 +147,6 @@
         async function prosesKeluarHalamanUtama(event) {
             event.preventDefault();
             await dbToko.auth.signOut();
-            alert("Kamu telah keluar dari akun penjual.");
             window.location.reload();
         }
 

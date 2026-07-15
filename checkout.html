@@ -58,7 +58,6 @@
         let teksRekapPesanan = "";
         let emailPembeliAktif = "";
 
-        // Proteksi keamanan halaman checkout wajib login
         async function muatDataCheckout() {
             const { data: { session } } = await dbToko.auth.getSession();
             if (!session) {
@@ -67,10 +66,11 @@
                 return;
             }
             
-            // Catat email pembeli dari akun yang aktif login
             emailPembeliAktif = session.user.email;
-
-            keranjangSistem = JSON.parse(localStorage.getItem('keranjang')) || [];
+            
+            // Panggil laci keranjang dari nama kunci privat
+            const kunciKeranjang = 'keranjang_' + emailPembeliAktif;
+            keranjangSistem = JSON.parse(localStorage.getItem(kunciKeranjang)) || [];
             
             if (keranjangSistem.length === 0) {
                 alert("Keranjangmu kosong!");
@@ -78,7 +78,6 @@
                 return;
             }
 
-            // Tampilkan halaman jika lolos pengecekan
             document.getElementById('wadah-konten-checkout').style.display = "block";
 
             let htmlRekap = "";
@@ -109,7 +108,6 @@
             tombol.innerText = "Memproses Pesananmu...";
             tombol.disabled = true;
 
-            // Mengirim data dengan menyertakan email pembeli asli hasil login
             const { data, error } = await dbToko.from('pesanan').insert([
                 { 
                     nama_pembeli: inputNama, 
@@ -127,7 +125,10 @@
                 tombol.innerText = "Buat Pesanan Sekarang";
                 tombol.disabled = false;
             } else {
-                localStorage.removeItem('keranjang'); // Bersihkan keranjang belanja
+                // HAPUS LACI PENYIMPANAN SETELAH SUKSES
+                const kunciKeranjang = 'keranjang_' + emailPembeliAktif;
+                localStorage.removeItem(kunciKeranjang); 
+                
                 alert("Pesanan Berhasil Dibuat! Penjual akan segera memproses barangmu.");
                 window.location.replace("index.html");
             }

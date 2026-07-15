@@ -153,24 +153,24 @@
             document.getElementById('harga-detail-layar').innerText = `Rp ${hargaFormat}`;
         }
 
-        // FUNGSI BARU: PENGECEKAN STATUS LOGIN PEMBELI
         async function validasiLoginPembeli() {
             const { data: { session } } = await dbToko.auth.getSession();
             if (!session) {
                 alert("Ups! Kamu harus punya akun dan masuk (login) terlebih dahulu untuk mulai berbelanja.");
                 window.location.href = "login.html";
-                return false;
+                return null;
             }
-            return true;
+            return session.user.email; // KEMBALIKAN EMAIL PEMBELI
         }
 
-        // FUNGSI KERANJANG DIUBAH MENJADI ASYNC AGAR BISA MENUNGGU PENGECEKAN
         async function aksiKeranjang(dariBeliLangsung) {
-            // Cek apakah pembeli sudah login
-            const bolehBeli = await validasiLoginPembeli();
-            if (!bolehBeli) return; // Jika belum, hentikan proses penyimpanan keranjang
+            const emailPembeli = await validasiLoginPembeli();
+            if (!emailPembeli) return; 
 
-            let isiKeranjang = JSON.parse(localStorage.getItem('keranjang')) || [];
+            // MEMBUAT NAMA LACI KHUSUS SESUAI EMAIL
+            const kunciKeranjang = 'keranjang_' + emailPembeli;
+
+            let isiKeranjang = JSON.parse(localStorage.getItem(kunciKeranjang)) || [];
             let barangSama = isiKeranjang.find(item => item.id === idProdukAktif && item.varian === varianAktif);
 
             if (barangSama) {
@@ -186,18 +186,16 @@
                 });
             }
 
-            localStorage.setItem('keranjang', JSON.stringify(isiKeranjang));
+            localStorage.setItem(kunciKeranjang, JSON.stringify(isiKeranjang));
             
-            // Tampilkan alert hanya jika tombol ditekan langsung (bukan dari tombol Beli Langsung)
             if (!dariBeliLangsung) {
                 alert(`Sukses! "${namaProdukAktif} (${varianAktif})" telah dimasukkan ke keranjang belanja.`);
             }
         }
 
         async function aksiBeliLangsung() {
-            // Cek login juga berlaku untuk Beli Langsung
-            const bolehBeli = await validasiLoginPembeli();
-            if (!bolehBeli) return;
+            const emailPembeli = await validasiLoginPembeli();
+            if (!emailPembeli) return;
 
             await aksiKeranjang(true);
             window.location.href = "checkout.html";

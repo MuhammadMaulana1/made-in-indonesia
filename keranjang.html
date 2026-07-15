@@ -10,7 +10,6 @@
         .wadah-keranjang { width: 100%; max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         h2 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 15px; color: #333; text-align: left; }
         
-        /* GAYA DAFTAR PRODUK DALAM KERANJANG */
         .item-keranjang { display: flex; gap: 15px; border-bottom: 1px solid #eee; padding: 15px 0; align-items: center; }
         .gambar-produk-keranjang { width: 70px; height: 70px; object-fit: cover; border-radius: 5px; background: #fafafa; border: 1px solid #ddd; }
         .detail-info-produk { flex: 1; text-align: left; }
@@ -18,14 +17,12 @@
         .varian-produk { font-size: 13px; color: #777; margin: 0 0 8px 0; }
         .harga-produk { color: #2ecc71; font-weight: bold; font-size: 15px; margin: 0; }
         
-        /* GAYA TOMBOL HITUNG QUANTITY (PLUS MINUS) */
         .pengatur-jumlah { display: flex; align-items: center; gap: 5px; }
         .btn-hitung { background: #e0e0e0; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; }
         .btn-hitung:hover { background: #ccc; }
         .angka-jumlah { font-weight: bold; width: 25px; text-align: center; font-size: 14px; }
         .btn-buang { background: #ff4d4d; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 10px; font-weight: bold;}
         
-        /* BOX TOTAL RINGKASAN HARGA */
         .kotak-total { margin-top: 25px; background: #fdfdfd; border: 1px solid #ddd; padding: 20px; border-radius: 8px; text-align: right; }
         .teks-total { font-size: 18px; color: #444; margin-bottom: 5px; }
         .angka-total { font-size: 26px; font-weight: bold; color: #2ecc71; margin-bottom: 20px; }
@@ -34,13 +31,10 @@
         .btn-checkout:hover { background-color: #e64a19; }
         .btn-kembali { display: inline-block; text-align: center; margin-top: 15px; color: #007bff; text-decoration: none; font-size: 14px; font-weight: bold; }
     </style>
-    
-    <!-- WAJIB ADA: Sambungan ke library Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-    <!-- Wadah ini disembunyikan dulu sampai sistem selesai cek login -->
     <div class="wadah-keranjang" id="area-keranjang" style="display: none;">
         <h2>🛒 Keranjang Belanja Saya</h2>
         
@@ -59,13 +53,13 @@
     </div>
 
     <script>
-        // Inisialisasi koneksi Supabase
         const URL_SUPABASE = 'https://obdmfjjckdhzqbvhpung.supabase.co';
         const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
         const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
 
+        let emailUserAktif = ""; // Simpan email secara global di file ini
+
         async function muatIsiKeranjang() {
-            // 1. Sistem Kunci Pengaman Login
             const { data: { session } } = await dbToko.auth.getSession();
             if (!session) {
                 alert("Silakan masuk (login) untuk melihat keranjang belanjamu.");
@@ -73,14 +67,15 @@
                 return;
             }
 
-            // Jika lolos, tampilkan halaman keranjangnya
+            emailUserAktif = session.user.email;
+            const kunciKeranjang = 'keranjang_' + emailUserAktif;
+
             document.getElementById('area-keranjang').style.display = "block";
 
             const wadahList = document.getElementById('list-belanjaan');
             const wadahRingkasan = document.getElementById('ringkasan-bayar');
             
-            // Ambil data keranjang dari penyimpanan HP/Browser
-            let keranjang = JSON.parse(localStorage.getItem('keranjang')) || [];
+            let keranjang = JSON.parse(localStorage.getItem(kunciKeranjang)) || [];
 
             if (keranjang.length === 0) {
                 wadahList.innerHTML = `<p style="color:#777; font-style:italic; margin: 40px 0; text-align:center;">Keranjang belanjamu masih kosong. Yuk cari barang menarik di etalase!</p>`;
@@ -92,7 +87,6 @@
             wadahRingkasan.style.display = "block";
             let totalBiayaSeluruhnya = 0;
 
-            // Merangkai daftar barang di HTML
             keranjang.forEach((item, indeks) => {
                 let subTotalItem = item.harga * item.jumlah;
                 totalBiayaSeluruhnya += subTotalItem;
@@ -118,38 +112,35 @@
                 wadahList.innerHTML += htmlBaris;
             });
 
-            // Tampilkan total biaya
             document.getElementById('total-rupiah-layar').innerText = `Rp ${new Intl.NumberFormat('id-ID').format(totalBiayaSeluruhnya)}`;
         }
 
-        // Fungsi Tombol Tambah (+) dan Kurang (-) Kuantitas
         function ubahQty(indeks, perubahan) {
-            let keranjang = JSON.parse(localStorage.getItem('keranjang')) || [];
+            const kunciKeranjang = 'keranjang_' + emailUserAktif;
+            let keranjang = JSON.parse(localStorage.getItem(kunciKeranjang)) || [];
             let jumlahBaru = parseInt(keranjang[indeks].jumlah) + perubahan;
 
             if (jumlahBaru <= 0) {
                 buangItem(indeks);
             } else {
                 keranjang[indeks].jumlah = jumlahBaru;
-                localStorage.setItem('keranjang', JSON.stringify(keranjang));
+                localStorage.setItem(kunciKeranjang, JSON.stringify(keranjang));
                 muatIsiKeranjang(); 
             }
         }
 
-        // Fungsi Tombol Hapus
         function buangItem(indeks) {
-            let keranjang = JSON.parse(localStorage.getItem('keranjang')) || [];
+            const kunciKeranjang = 'keranjang_' + emailUserAktif;
+            let keranjang = JSON.parse(localStorage.getItem(kunciKeranjang)) || [];
             keranjang.splice(indeks, 1); 
-            localStorage.setItem('keranjang', JSON.stringify(keranjang));
+            localStorage.setItem(kunciKeranjang, JSON.stringify(keranjang));
             muatIsiKeranjang(); 
         }
 
-        // Fungsi Arah Tombol Lanjut Pembayaran
         function lanjutBayarTahapTiga() {
             window.location.href = "checkout.html";
         }
 
-        // Jalankan fungsi saat halaman dibuka
         muatIsiKeranjang();
     </script>
 </body>
