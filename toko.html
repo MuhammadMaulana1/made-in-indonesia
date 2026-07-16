@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etalase Toko - Made in Indonesia</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 15px; text-align: center; }
+        .wadah-toko { width: 100%; max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        
+        /* GAYA HEADER PROFIL TOKO */
+        .header-profil-toko { background: #eaf2f8; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #cce5ff; }
+        .avatar-toko { width: 60px; height: 60px; background-color: #007bff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; margin: 0 auto 10px auto; }
+        .nama-toko-header { margin: 0 0 5px 0; color: #333; font-size: 20px; }
+        .email-toko-header { color: #666; font-size: 13px; margin: 0; }
+        
+        .kartu-produk { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fafafa; margin-top: 20px; text-align: left; overflow: hidden; cursor: pointer; transition: 0.2s; }
+        .kartu-produk:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-color: #bbb; }
+        
+        .galeri-media { display: flex; overflow-x: auto; gap: 10px; margin-bottom: 15px; padding-bottom: 5px; scroll-snap-type: x mandatory; }
+        .item-media { flex: 0 0 90%; height: 250px; object-fit: contain; border-radius: 5px; background-color: transparent; scroll-snap-align: center; }
+        
+        .harga { color: #2ecc71; font-size: 20px; font-weight: bold; margin: 5px 0 10px 0; }
+        .tombol-detail { display: block; text-align: center; background-color: #007bff; color: white; padding: 12px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px; }
+        .tombol-detail:hover { background-color: #0056b3; }
+        
+        .btn-kembali { display: inline-block; margin-bottom: 20px; color: #666; text-decoration: none; font-size: 14px; font-weight: bold; }
+        #pesan-status { color: #666; font-style: italic; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="wadah-toko">
+        <a href="index.html" class="btn-kembali">← Kembali ke Halaman Utama</a>
+        
+        <!-- Area Identitas Toko -->
+        <div class="header-profil-toko" id="info-toko" style="display: none;">
+            <div class="avatar-toko" id="huruf-depan-toko">?</div>
+            <h2 class="nama-toko-header" id="nama-toko-judul">Memuat Toko...</h2>
+            <p class="email-toko-header" id="email-toko-teks">...</p>
+        </div>
+
+        <div id="daftar-produk">
+            <p id="pesan-status">Mencari barang di toko ini...</p>
+        </div>
+    </div>
+
+    <script>
+        const URL_SUPABASE = 'https://obdmfjjckdhzqbvhpung.supabase.co';
+        const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
+        const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
+        
+        async function tampilkanProdukToko() {
+            const wadahProduk = document.getElementById('daftar-produk');
+            
+            // Tangkap identitas email dari URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const emailTokoDicari = urlParams.get('email');
+
+            if (!emailTokoDicari) {
+                wadahProduk.innerHTML = '<p style="color:red;">Identitas toko tidak ditemukan!</p>';
+                return;
+            }
+
+            // Tampilkan Profil Toko
+            const namaTokoPotongan = emailTokoDicari.split('@')[0];
+            document.getElementById('nama-toko-judul').innerText = `Toko ${namaTokoPotongan}`;
+            document.getElementById('email-toko-teks').innerText = `Kontak: ${emailTokoDicari}`;
+            document.getElementById('huruf-depan-toko').innerText = namaTokoPotongan.charAt(0).toUpperCase();
+            document.getElementById('info-toko').style.display = 'block';
+
+            // Tarik data khusus toko ini saja (.eq('email_penjual', ...))
+            const { data, error } = await dbToko.from('produk').select('*').eq('email_penjual', emailTokoDicari).order('created_at', { ascending: false });
+
+            if (error) { wadahProduk.innerHTML = '<p style="color:red;">Gagal memuat barang: ' + error.message + '</p>'; return; }
+            if (data.length === 0) { wadahProduk.innerHTML = '<p>Toko ini belum memajang barang apapun.</p>'; return; }
+
+            wadahProduk.innerHTML = '';
+
+            data.forEach(barang => {
+                const hargaRupiahAwal = new Intl.NumberFormat('id-ID').format(barang.harga);
+
+                let htmlMedia = '';
+                if (barang.foto_url) {
+                    const daftarLink = barang.foto_url.split(',');
+                    daftarLink.sort((a, b) => {
+                        const isVideoA = a.toLowerCase().match(/\.(mp4|mov|webm)$/i);
+                        const isVideoB = b.toLowerCase().match(/\.(mp4|mov|webm)$/i);
+                        if (isVideoA && !isVideoB) return -1;
+                        if (!isVideoA && isVideoB) return 1;
+                        return 0;
+                    });
+                    
+                    htmlMedia = '<div class="galeri-media">';
+                    daftarLink.forEach(link => {
+                        if (link.toLowerCase().match(/\.(mp4|mov|webm)$/i)) {
+                            htmlMedia += `<video src="${link}" class="item-media" controls preload="metadata" onclick="event.stopPropagation()"></video>`;
+                        } else {
+                            htmlMedia += `<img src="${link}" class="item-media" alt="${barang.nama_barang}">`;
+                        }
+                    });
+                    htmlMedia += '</div>';
+                }
+
+                const elemenProduk = `
+                    <div class="kartu-produk" onclick="window.location.href='detail-produk.html?id=${barang.id}'">
+                        ${htmlMedia}
+                        <h2 style="margin-top: 0; margin-bottom: 5px; color:#333;">${barang.nama_barang}</h2>
+                        <p class="harga">Rp ${hargaRupiahAwal}</p>
+                        <a href="detail-produk.html?id=${barang.id}" class="tombol-detail">Lihat Detail & Beli</a>
+                    </div>
+                `;
+                wadahProduk.innerHTML += elemenProduk;
+            });
+        }
+
+        tampilkanProdukToko();
+    </script>
+</body>
+</html>

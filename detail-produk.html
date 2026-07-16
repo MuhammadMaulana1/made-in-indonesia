@@ -13,7 +13,12 @@
         .item-media { flex: 0 0 100%; height: 350px; object-fit: contain; border-radius: 8px; background-color: #fafafa; scroll-snap-align: center; }
         
         h1 { margin: 0 0 5px 0; color: #333; font-size: 24px; }
-        .nama-toko { font-size: 14px; color: #007bff; font-weight: bold; margin-bottom: 15px; display: block; }
+        
+        /* GAYA BARU: TAUTAN NAMA TOKO */
+        .nama-toko { font-size: 14px; color: #666; margin-bottom: 15px; display: block; }
+        .link-toko { color: #007bff; text-decoration: none; transition: 0.2s; }
+        .link-toko:hover { text-decoration: underline; color: #0056b3; }
+
         .harga { color: #2ecc71; font-size: 26px; font-weight: bold; margin: 15px 0; }
         
         .pilihan-varian p { margin: 15px 0 5px 0; font-weight: bold; font-size: 15px; color: #444; }
@@ -24,13 +29,12 @@
         .sub-judul { font-weight: bold; font-size: 16px; color: #444; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; margin-bottom: 8px; }
         .deskripsi { font-size: 15px; color: #555; line-height: 1.6; white-space: pre-wrap; margin-bottom: 25px; }
         
-        /* GAYA FITUR PENGATUR JUMLAH BARU */
         .wadah-kuantitas { display: flex; align-items: center; gap: 15px; margin-top: 25px; border-top: 1px solid #eee; padding-top: 20px; }
         .wadah-kuantitas label { margin: 0; font-weight: bold; color: #444; font-size: 15px; }
         .pengatur-kuantitas { display: flex; align-items: center; border: 1px solid #ccc; border-radius: 5px; overflow: hidden; }
         .btn-qty { background: #f4f4f4; border: none; padding: 10px 16px; font-weight: bold; cursor: pointer; font-size: 16px; color: #333;}
         .btn-qty:hover { background: #e0e0e0; }
-        .input-qty { width: 60px; text-align: center; border: none; border-left: 1px solid #ccc; border-right: 1px solid #ccc; font-size: 16px; font-weight: bold; padding: 10px 0; -moz-appearance: textfield; appearance: textfield; }
+        .input-qty { width: 60px; text-align: center; border: none; border-left: 1px solid #ccc; border-right: 1px solid #ccc; font-size: 16px; font-weight: bold; padding: 10px 0; appearance: textfield; -moz-appearance: textfield;}
         .input-qty::-webkit-outer-spin-button, .input-qty::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         
         .grup-tombol-beli { display: flex; gap: 12px; margin-top: 15px; }
@@ -63,7 +67,7 @@
         let hargaAktif = 0;
         let varianAktif = "Normal";
         let linkFotoCover = ""; 
-        let stokMaksimal = 0; // Perekam batas stok asli produk
+        let stokMaksimal = 0; 
 
         async function muatDetailProduk() {
             const wadah = document.getElementById('konten-produk');
@@ -82,7 +86,7 @@
 
             namaProdukAktif = barang.nama_barang;
             hargaAktif = barang.harga;
-            stokMaksimal = parseInt(barang.stok) || 0; // Simpan batas stoknya
+            stokMaksimal = parseInt(barang.stok) || 0; 
 
             let htmlMedia = '';
             if (barang.foto_url) {
@@ -132,20 +136,20 @@
             }
 
             const namaToko = barang.email_penjual ? barang.email_penjual.split('@')[0] : 'Umum';
+            const alamatEmailPemilik = barang.email_penjual || '#';
+
             const hargaFormat = new Intl.NumberFormat('id-ID').format(hargaAktif);
 
-            // SUSUNAN LAYAR DENGAN FITUR PENGATUR JUMLAH BARU
             wadah.innerHTML = `
                 ${htmlMedia}
                 <h1>${barang.nama_barang}</h1>
-                <span class="nama-toko">Oleh Toko: ${namaToko}</span>
+                <span class="nama-toko">Oleh Toko: <a href="toko.html?email=${alamatEmailPemilik}" class="link-toko"><strong>${namaToko}</strong></a></span>
                 <div class="harga" id="harga-detail-layar">Rp ${hargaFormat}</div>
                 ${htmlVarian}
                 
                 <div class="sub-judul">Detail Deskripsi Barang</div>
                 <div class="deskripsi">${barang.deskripsi}</div>
 
-                <!-- PENGATUR JUMLAH BELI DAN INFO STOK -->
                 <div class="wadah-kuantitas">
                     <label>Atur Jumlah:</label>
                     <div class="pengatur-kuantitas">
@@ -163,15 +167,12 @@
             `;
         }
 
-        // --- FUNGSI BARU: MENGATUR ANGKA KUANTITAS DI LAYAR (KLIK + / -) ---
         function ubahKuantitasDiLayar(perubahan) {
             const inputQty = document.getElementById('input-kuantitas-beli');
             let jumlahBaru = parseInt(inputQty.value) + perubahan;
             
-            // Tidak boleh di bawah 1
             if (jumlahBaru < 1) jumlahBaru = 1;
             
-            // Tidak boleh melebihi sisa stok yang ada
             if (jumlahBaru > stokMaksimal) {
                 jumlahBaru = stokMaksimal;
                 alert(`Maaf, kamu tidak bisa membeli melebihi sisa stok yang ada (${stokMaksimal} unit).`);
@@ -180,16 +181,13 @@
             inputQty.value = jumlahBaru;
         }
 
-        // --- FUNGSI BARU: VALIDASI JIKA PEMBELI MENGETIK ANGKA MANUAL ---
         function validasiKetikKuantitas() {
             const inputQty = document.getElementById('input-kuantitas-beli');
             let angkaDiketik = parseInt(inputQty.value);
             
-            // Jika dikosongkan, diisi huruf, atau minus
             if (isNaN(angkaDiketik) || angkaDiketik < 1) {
                 inputQty.value = 1;
             } 
-            // Jika angka ketikan melebihi stok
             else if (angkaDiketik > stokMaksimal) {
                 inputQty.value = stokMaksimal;
                 alert(`Maaf, sisa stok hanya ${stokMaksimal} unit.`);
@@ -222,35 +220,30 @@
             const emailPembeli = await validasiLoginPembeli();
             if (!emailPembeli) return; 
 
-            // AMBIL ANGKA JUMLAH YANG DITENTUKAN PEMBELI DI LAYAR
             const jumlahBeliFinal = parseInt(document.getElementById('input-kuantitas-beli').value);
 
             const kunciKeranjang = 'keranjang_' + emailPembeli;
             let isiKeranjang = JSON.parse(localStorage.getItem(kunciKeranjang)) || [];
             
-            // Cek apakah produk dengan varian yang sama persis sudah ada di keranjang?
             let barangSama = isiKeranjang.find(item => item.id === idProdukAktif && item.varian === varianAktif);
 
             if (barangSama) {
-                // Jika sudah ada, tambahkan dengan kuantitas yang baru dipilih
                 let totalGabungan = parseInt(barangSama.jumlah) + jumlahBeliFinal;
                 
-                // Mencegah akumulasi keranjang melebihi stok
                 if (totalGabungan > stokMaksimal) {
                     alert(`Gagal menambahkan! Jika ditambah dengan yang ada di keranjangmu, totalnya (${totalGabungan}) melebihi stok toko (${stokMaksimal}).`);
-                    return; // Batalkan penambahan
+                    return; 
                 } else {
                     barangSama.jumlah = totalGabungan; 
                 }
             } else {
-                // Jika belum ada, buat rekam jejak baru di keranjang
                 isiKeranjang.push({
                     id: idProdukAktif,
                     nama: namaProdukAktif,
                     varian: varianAktif,
                     harga: parseInt(hargaAktif),
                     foto: linkFotoCover,
-                    jumlah: jumlahBeliFinal // Menggunakan kuantitas yang dipilih
+                    jumlah: jumlahBeliFinal 
                 });
             }
 

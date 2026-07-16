@@ -23,7 +23,11 @@
         .wadah-menu-login { background: #eaf2f8; padding: 12px; border-radius: 5px; font-size: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .btn-link-menu { color: #007bff; text-decoration: none; font-weight: bold; }
         .btn-keluar-menu { color: #dc3545; text-decoration: none; font-weight: bold; margin-left: 10px; }
+        
+        /* GAYA BARU: TAUTAN NAMA TOKO YANG BISA DIKLIK */
         .nama-toko-penjual { font-size: 13px; color: #666; margin-top: 0; margin-bottom: 8px; display: block; }
+        .link-toko { color: #007bff; text-decoration: none; transition: 0.2s; }
+        .link-toko:hover { text-decoration: underline; color: #0056b3; }
         
         .wadah-nav-aksi { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
         .btn-keranjang-nav { background-color: #ff9800; color: white; text-decoration: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; font-size: 14px; }
@@ -65,7 +69,6 @@
             const { data: { session } } = await dbToko.auth.getSession();
             const emailUserLogin = session ? session.user.email : null;
 
-            // FUNGSI HITUNG KERANJANG BERDASARKAN EMAIL PRIVAT
             function hitungBadgeKeranjang(emailUser) {
                 if (!emailUser) {
                     document.getElementById('angka-badge-nav').innerText = "0";
@@ -130,12 +133,14 @@
                 }
 
                 const namaToko = barang.email_penjual ? barang.email_penjual.split('@')[0] : 'Umum';
+                const alamatEmailPemilik = barang.email_penjual || '#'; // Jaga-jaga jika produk belum ada emailnya
 
+                // ELEMEN NAMA TOKO KINI BERUBAH MENJADI LINK KE toko.html
                 const elemenProduk = `
                     <div class="kartu-produk" onclick="window.location.href='detail-produk.html?id=${barang.id}'">
                         ${htmlMedia}
                         <h2 style="margin-top: 0; margin-bottom: 2px; color:#333;">${barang.nama_barang}</h2>
-                        <span class="nama-toko-penjual">Toko: <strong>${namaToko}</strong></span>
+                        <span class="nama-toko-penjual">Toko: <a href="toko.html?email=${alamatEmailPemilik}" class="link-toko" onclick="event.stopPropagation()"><strong>${namaToko}</strong></a></span>
                         <p class="harga">Rp ${hargaRupiahAwal}</p>
                         <a href="detail-produk.html?id=${barang.id}" class="tombol-detail">Lihat Detail & Beli</a>
                     </div>
