@@ -101,7 +101,8 @@
             emailPenggunaAktif = session.user.email;
             document.getElementById('email-aktif').innerText = emailPenggunaAktif;
 
-            const { data: profil, error } = await dbToko.from('profil').select('*').eq('email', emailPenggunaAktif).single();
+            // KODE DIPERBARUI: Mengambil dari tabel 'profile'
+            const { data: profil, error } = await dbToko.from('profile').select('*').eq('email', emailPenggunaAktif).single();
 
             if (profil) {
                 document.getElementById('nama-tampil').innerText = profil.nama_toko || "Nama Belum Diatur";
@@ -156,7 +157,8 @@
 
             if (fileFoto) {
                 const namaFileAman = Date.now() + "_" + emailPenggunaAktif.split('@')[0] + ".jpg";
-                const { data: dataUpload, error: errorUpload } = await dbToko.storage.from('profil-user').upload(namaFileAman, fileFoto);
+                // KODE DIPERBARUI: Mengirim foto ke bucket 'profile-user'
+                const { data: dataUpload, error: errorUpload } = await dbToko.storage.from('profile-user').upload(namaFileAman, fileFoto);
                 
                 if (errorUpload) {
                     alert("Gagal mengunggah foto profil: " + errorUpload.message);
@@ -164,12 +166,13 @@
                     tombol.disabled = false;
                     return;
                 }
-                const { data: linkMedia } = dbToko.storage.from('profil-user').getPublicUrl(namaFileAman);
+                // KODE DIPERBARUI: Mengambil link dari bucket 'profile-user'
+                const { data: linkMedia } = dbToko.storage.from('profile-user').getPublicUrl(namaFileAman);
                 linkFotoAkhir = linkMedia.publicUrl;
             }
 
-            // KODE BARU: Menambahkan { onConflict: 'email' } karena email kita set sebagai "Unique"
-            const { error } = await dbToko.from('profil').upsert({
+            // KODE DIPERBARUI: Menyimpan teks ke tabel 'profile'
+            const { error } = await dbToko.from('profile').upsert({
                 email: emailPenggunaAktif,
                 username: userBaru,
                 nama_toko: namaBaru,
