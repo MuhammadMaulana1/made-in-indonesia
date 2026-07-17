@@ -103,7 +103,8 @@
         <input type="date" id="input-tgllahir">
 
         <label>Bio Singkat</label>
-        <textarea id="input-bio" rows="4" placeholder="Ceritakan singkat tentang dirimu atau tokomu... (Maks 150 kata)"></textarea>
+        <textarea id="input-bio" rows="3" maxlength="150" placeholder="Ceritakan singkat tentang dirimu atau tokomu... (Maks 150 huruf)"></textarea>
+        <span class="info-teks">Sisa huruf akan dibatasi otomatis oleh sistem maksimal 150 karakter.</span>
 
         <button class="btn-simpan-profil" id="tombol-simpan-profil" onclick="simpanProfil()">Simpan Perubahan</button>
         <button class="btn-batal" onclick="tutupPanelEdit()">Batal Edit</button>
