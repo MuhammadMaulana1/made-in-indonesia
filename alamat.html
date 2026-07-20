@@ -91,40 +91,37 @@
 </div>
 
 <script>
-    // 1. Inisialisasi Supabase
-const SUPABASE_URL = 'https://obdmfjjckdhzqbvhpung.supabase.co'; 
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M'; 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const SUPABASE_URL = 'https://obdmfjjckdhzqbvhpung.supabase.co'; 
+    const SUPABASE_KEY = 'PASTE_KUNCI_ANON_KAMU_DI_SINI'; 
+    
+    // PERBAIKAN: Kita ubah nama variabelnya menjadi supabaseClient agar tidak bentrok
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let emailUserSaatIni = "";
 
-    // 2. Cek Sesi Login saat halaman dimuat
     window.onload = async function() {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session) {
             alert("Silakan login terlebih dahulu!");
-            window.location.href = "index.html"; // Arahkan ke halaman login
+            window.location.href = "index.html"; 
             return;
         }
         emailUserSaatIni = session.user.email;
         tampilkanDaftarAlamat();
     };
 
-    // 3. Fungsi Menangkap Titik GPS
     function ambilLokasi() {
         const inputGps = document.getElementById('titik_gps');
         inputGps.value = "Sedang mencari lokasi...";
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                // Jika Berhasil
                 function(position) {
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
                     inputGps.value = lat + ", " + lon;
                     alert("Lokasi berhasil ditemukan!");
                 },
-                // Jika Gagal/Ditolak
                 function(error) {
                     inputGps.value = "";
                     alert("Gagal mengambil lokasi. Pastikan kamu mengizinkan akses lokasi (GPS) di browsermu.");
@@ -135,7 +132,6 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     }
 
-    // 4. Fungsi Menyimpan Alamat ke Supabase
     async function simpanAlamat() {
         const label = document.getElementById('label_alamat').value;
         const nama = document.getElementById('nama_penerima').value;
@@ -145,15 +141,12 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const gps = document.getElementById('titik_gps').value;
         const isUtama = document.getElementById('is_utama').checked;
 
-        // Validasi form kosong
         if(!label || !nama || !noHp || !alamat) {
             alert("Mohon lengkapi Label, Nama, No HP, dan Alamat Lengkap!");
             return;
         }
 
-        // Jika alamat ini diset jadi utama, kita harus ubah alamat utama yg lama jadi false (Opsional tingkat lanjut, sementara kita save saja dulu)
-        
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('alamat_user')
             .insert([
                 { 
@@ -173,7 +166,6 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             alert("Gagal menyimpan alamat: " + error.message);
         } else {
             alert("Alamat berhasil disimpan!");
-            // Kosongkan form
             document.getElementById('label_alamat').value = "";
             document.getElementById('nama_penerima').value = "";
             document.getElementById('no_hp_penerima').value = "";
@@ -182,22 +174,20 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             document.getElementById('titik_gps').value = "";
             document.getElementById('is_utama').checked = false;
             
-            // Muat ulang daftar
             tampilkanDaftarAlamat();
         }
     }
 
-    // 5. Fungsi Mengambil dan Menampilkan Daftar Alamat
     async function tampilkanDaftarAlamat() {
         const listContainer = document.getElementById('list-container');
         document.getElementById('loading-text').style.display = 'block';
         listContainer.innerHTML = "";
 
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('alamat_user')
             .select('*')
             .eq('email_pemilik', emailUserSaatIni)
-            .order('is_utama', { ascending: false }); // Yg utama muncul di atas
+            .order('is_utama', { ascending: false });
 
         document.getElementById('loading-text').style.display = 'none';
 
