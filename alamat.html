@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buku Alamat - Marketplace</title>
+    <!-- Masukkan Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        .back-btn { display: inline-block; margin-bottom: 20px; color: #007bff; text-decoration: none; font-weight: bold; }
+        
+        /* Form Styling */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        input[type="text"], input[type="tel"], textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        textarea { resize: vertical; height: 80px; }
+        
+        /* Tombol */
+        .btn-gps { background-color: #ff9800; color: white; border: none; padding: 10px; width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
+        .btn-gps:hover { background-color: #e68a00; }
+        .btn-submit { background-color: #28a745; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        .btn-submit:hover { background-color: #218838; }
+        
+        /* Checkbox */
+        .checkbox-group { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .checkbox-group input { width: 20px; height: 20px; cursor: pointer; }
+
+        /* List Alamat */
+        #daftar-alamat { margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px; }
+        .kartu-alamat { border: 1px solid #ddd; padding: 15px; border-radius: 5px; margin-bottom: 15px; background-color: #fafafa; }
+        .kartu-alamat h4 { margin: 0 0 5px 0; color: #007bff; }
+        .kartu-alamat p { margin: 5px 0; color: #444; font-size: 14px; }
+        .badge-utama { background-color: #dc3545; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-left: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="akun.html" class="back-btn">← Kembali ke Akun</a>
+    <h2>Buku Alamat Pengiriman</h2>
+
+    <!-- Form Tambah Alamat -->
+    <div style="background-color: #f9f9ff; padding: 15px; border-radius: 8px; border: 1px dashed #007bff;">
+        <h3 style="margin-top: 0;">Tambah Alamat Baru</h3>
+        
+        <div class="form-group">
+            <label>Label Alamat (Misal: Rumah, Kantor)</label>
+            <input type="text" id="label_alamat" placeholder="Contoh: Rumah" required>
+        </div>
+        <div class="form-group">
+            <label>Nama Penerima</label>
+            <input type="text" id="nama_penerima" required>
+        </div>
+        <div class="form-group">
+            <label>Nomor HP Penerima</label>
+            <input type="tel" id="no_hp_penerima" required>
+        </div>
+        <div class="form-group">
+            <label>Alamat Lengkap</label>
+            <textarea id="alamat_lengkap" placeholder="Nama Jalan, RT/RW, Desa, Kecamatan, Kota" required></textarea>
+        </div>
+        <div class="form-group">
+            <label>Catatan Kurir (Opsional)</label>
+            <input type="text" id="catatan_kurir" placeholder="Contoh: Warna rumah hijau, titip di satpam">
+        </div>
+
+        <!-- Bagian GPS -->
+        <div class="form-group">
+            <label>Titik Koordinat (GPS)</label>
+            <button type="button" class="btn-gps" onclick="ambilLokasi()">📍 Gunakan Lokasi Saat Ini</button>
+            <input type="text" id="titik_gps" placeholder="Klik tombol di atas untuk mengisi otomatis" readonly style="background-color: #e9ecef; cursor: not-allowed;">
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="is_utama">
+            <label for="is_utama" style="margin: 0;">Jadikan sebagai Alamat Utama</label>
+        </div>
+
+        <button class="btn-submit" onclick="simpanAlamat()">Simpan Alamat</button>
+    </div>
+
+    <!-- Tempat Menampilkan Daftar Alamat -->
+    <div id="daftar-alamat">
+        <h3>Alamat Tersimpan</h3>
+        <div id="loading-text">Memuat alamat...</div>
+        <div id="list-container"></div>
+    </div>
+</div>
+
+<script>
+    // 1. Inisialisasi Supabase
+const SUPABASE_URL = 'https://obdmfjjckdhzqbvhpung.supabase.co'; 
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M'; 
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let emailUserSaatIni = "";
+
+    // 2. Cek Sesi Login saat halaman dimuat
+    window.onload = async function() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            alert("Silakan login terlebih dahulu!");
+            window.location.href = "index.html"; // Arahkan ke halaman login
+            return;
+        }
+        emailUserSaatIni = session.user.email;
+        tampilkanDaftarAlamat();
+    };
+
+    // 3. Fungsi Menangkap Titik GPS
+    function ambilLokasi() {
+        const inputGps = document.getElementById('titik_gps');
+        inputGps.value = "Sedang mencari lokasi...";
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                // Jika Berhasil
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    inputGps.value = lat + ", " + lon;
+                    alert("Lokasi berhasil ditemukan!");
+                },
+                // Jika Gagal/Ditolak
+                function(error) {
+                    inputGps.value = "";
+                    alert("Gagal mengambil lokasi. Pastikan kamu mengizinkan akses lokasi (GPS) di browsermu.");
+                }
+            );
+        } else {
+            alert("Browser kamu tidak mendukung fitur lokasi GPS.");
+        }
+    }
+
+    // 4. Fungsi Menyimpan Alamat ke Supabase
+    async function simpanAlamat() {
+        const label = document.getElementById('label_alamat').value;
+        const nama = document.getElementById('nama_penerima').value;
+        const noHp = document.getElementById('no_hp_penerima').value;
+        const alamat = document.getElementById('alamat_lengkap').value;
+        const catatan = document.getElementById('catatan_kurir').value;
+        const gps = document.getElementById('titik_gps').value;
+        const isUtama = document.getElementById('is_utama').checked;
+
+        // Validasi form kosong
+        if(!label || !nama || !noHp || !alamat) {
+            alert("Mohon lengkapi Label, Nama, No HP, dan Alamat Lengkap!");
+            return;
+        }
+
+        // Jika alamat ini diset jadi utama, kita harus ubah alamat utama yg lama jadi false (Opsional tingkat lanjut, sementara kita save saja dulu)
+        
+        const { data, error } = await supabase
+            .from('alamat_user')
+            .insert([
+                { 
+                    email_pemilik: emailUserSaatIni, 
+                    label_alamat: label, 
+                    nama_penerima: nama, 
+                    no_hp_penerima: noHp, 
+                    alamat_lengkap: alamat, 
+                    catatan_kurir: catatan, 
+                    titik_gps: gps, 
+                    is_utama: isUtama 
+                }
+            ]);
+
+        if (error) {
+            console.error("Error simpan:", error);
+            alert("Gagal menyimpan alamat: " + error.message);
+        } else {
+            alert("Alamat berhasil disimpan!");
+            // Kosongkan form
+            document.getElementById('label_alamat').value = "";
+            document.getElementById('nama_penerima').value = "";
+            document.getElementById('no_hp_penerima').value = "";
+            document.getElementById('alamat_lengkap').value = "";
+            document.getElementById('catatan_kurir').value = "";
+            document.getElementById('titik_gps').value = "";
+            document.getElementById('is_utama').checked = false;
+            
+            // Muat ulang daftar
+            tampilkanDaftarAlamat();
+        }
+    }
+
+    // 5. Fungsi Mengambil dan Menampilkan Daftar Alamat
+    async function tampilkanDaftarAlamat() {
+        const listContainer = document.getElementById('list-container');
+        document.getElementById('loading-text').style.display = 'block';
+        listContainer.innerHTML = "";
+
+        const { data, error } = await supabase
+            .from('alamat_user')
+            .select('*')
+            .eq('email_pemilik', emailUserSaatIni)
+            .order('is_utama', { ascending: false }); // Yg utama muncul di atas
+
+        document.getElementById('loading-text').style.display = 'none';
+
+        if (error) {
+            console.error("Error ambil data:", error);
+            return;
+        }
+
+        if (data.length === 0) {
+            listContainer.innerHTML = "<p style='color: gray; font-style: italic;'>Belum ada alamat tersimpan.</p>";
+            return;
+        }
+
+        data.forEach(alamat => {
+            const badgeUtama = alamat.is_utama ? `<span class="badge-utama">Utama</span>` : '';
+            const titikGpsText = alamat.titik_gps ? `📍 ${alamat.titik_gps}` : '<i>Tidak ada titik GPS</i>';
+            
+            const cardHtml = `
+                <div class="kartu-alamat">
+                    <h4>${alamat.label_alamat} ${badgeUtama}</h4>
+                    <p><strong>Penerima:</strong> ${alamat.nama_penerima} (${alamat.no_hp_penerima})</p>
+                    <p><strong>Alamat:</strong> ${alamat.alamat_lengkap}</p>
+                    <p style="color: #666;">📝 Catatan: ${alamat.catatan_kurir || '-'}</p>
+                    <p style="font-size: 12px; color: #007bff;">${titikGpsText}</p>
+                </div>
+            `;
+            listContainer.innerHTML += cardHtml;
+        });
+    }
+</script>
+
+</body>
+</html>
