@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kotak Masuk (Inbox) - Made in Indonesia</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
+        .wadah-inbox { max-width: 600px; margin: auto; background: white; min-height: 100vh; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+        
+        /* Bagian Header */
+        .header { background-color: #007bff; color: white; padding: 15px 20px; display: flex; align-items: center; position: sticky; top: 0; z-index: 10; }
+        .header a { color: white; text-decoration: none; font-size: 20px; margin-right: 15px; font-weight: bold;}
+        .header h2 { margin: 0; font-size: 18px; font-weight: 600;}
+
+        /* Daftar Pesan */
+        .area-daftar-pesan { padding: 10px 0; }
+        .kartu-chat { display: flex; padding: 15px 20px; border-bottom: 1px solid #eee; cursor: pointer; text-decoration: none; color: inherit; transition: background 0.2s;}
+        .kartu-chat:hover { background-color: #f9f9f9; }
+        
+        .avatar-pengguna { width: 45px; height: 45px; border-radius: 50%; background-color: #ddd; color: #555; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 18px; margin-right: 15px; flex-shrink: 0;}
+        .detail-chat { flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; justify-content: center;}
+        
+        .atas-detail { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .nama-kontak { font-weight: bold; color: #333; font-size: 15px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+        .waktu-chat { font-size: 12px; color: #888; white-space: nowrap; margin-left: 10px;}
+        
+        .bawah-detail { display: flex; justify-content: space-between; align-items: center;}
+        .cuplikan-pesan { font-size: 14px; color: #666; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85%;}
+        
+        .badge-pesan-baru { background-color: #25d366; color: white; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 10px; display: none;}
+
+        .pesan-kosong { text-align: center; color: #777; padding: 50px 20px; font-style: italic; }
+        .loading { text-align: center; padding: 30px; color: #007bff; font-weight: bold;}
+    </style>
+</head>
+<body>
+
+    <div class="wadah-inbox">
+        <div class="header">
+            <a href="index.html">←</a>
+            <h2>Kotak Masuk Chat</h2>
+        </div>
+
+        <div class="area-daftar-pesan" id="daftar-inbox">
+            <div class="loading">Memuat pesan...</div>
+            <!-- Daftar kontak akan muncul di sini via JS -->
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://obdmfjjckdhzqbvhpung.supabase.co';
+        // PASTE KUNCI ANON KAMU DI BAWAH INI
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M'; 
+        const dbToko = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let emailUserAktif = "";
+
+        async function cekLoginDanMuatPesan() {
+            const { data: { session } } = await dbToko.auth.getSession();
+            if (!session) {
+                alert("Sesi kamu telah habis atau belum login.");
+                window.location.replace("login.html");
+                return;
+            }
+            
+            emailUserAktif = session.user.email;
+            tarikRiwayatChat();
+        }
+
+        async function tarikRiwayatChat() {
+            const wadahInbox = document.getElementById('daftar-inbox');
+
+            // Menarik semua pesan di mana pengguna adalah pengirim ATAU penerima, urutkan dari yang paling baru
+            const { data: semuaPesan, error } = await dbToko
+                .from('pesan_chat')
+                .select('*')
+                .or(`pengirim_email.eq.${emailUserAktif},penerima_email.eq.${emailUserAktif}`)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                wadahInbox.innerHTML = `<div class="pesan-kosong">Gagal memuat pesan: ${error.message}</div>`;
+                return;
+            }
+
+            if (semuaPesan.length === 0) {
+                wadahInbox.innerHTML = `
+                    <div class="pesan-kosong">
+                        <h3 style="margin-bottom:10px; color:#555;">Belum ada pesan</h3>
+                        <p style="margin-top:0; font-size:14px;">Mulai percakapan dengan penjual melalui halaman detail produk.</p>
+                    </div>`;
+                return;
+            }
+
+            // Proses Grouping: Menyaring agar hanya pesan terakhir dengan setiap orang yang tampil
+            const kontakTersimpan = new Map();
+
+            semuaPesan.forEach(pesan => {
+                // Tentukan siapa lawan bicara kita (jika kita pengirim, maka lawan bicara adalah penerima, begitu juga sebaliknya)
+                const emailLawanBicara = pesan.pengirim_email === emailUserAktif ? pesan.penerima_email : pesan.pengirim_email;
+
+                // Jika lawan bicara ini belum ada di Map, masukkan pesan ini (karena datanya sudah berurutan dari yang terbaru)
+                if (!kontakTersimpan.has(emailLawanBicara)) {
+                    kontakTersimpan.set(emailLawanBicara, pesan);
+                }
+            });
+
+            tampilkanKeLayar(kontakTersimpan);
+        }
+
+        function tampilkanKeLayar(mapKontak) {
+            const wadahInbox = document.getElementById('daftar-inbox');
+            wadahInbox.innerHTML = ""; // Bersihkan loading
+
+            mapKontak.forEach((pesanTerakhir, emailLawanBicara) => {
+                // Membuat inisial nama untuk Avatar (Misal: muhammad@gmail.com jadi 'M')
+                const inisial = emailLawanBicara.charAt(0).toUpperCase();
+                
+                // Format Waktu sederhana
+                const waktuPesan = new Date(pesanTerakhir.created_at);
+                const stringWaktu = waktuPesan.getHours().toString().padStart(2, '0') + ":" + 
+                                    waktuPesan.getMinutes().toString().padStart(2, '0');
+
+                // Menentukan indikator "Anda:" jika pengguna adalah orang terakhir yang mengirim pesan
+                const prefixPesan = pesanTerakhir.pengirim_email === emailUserAktif ? "Anda: " : "";
+                
+                // Membuat HTML Kartu Chat yang bisa diklik menuju ruang chat
+                const htmlKartu = `
+                    <a href="ruang-chat.html?target=${encodeURIComponent(emailLawanBicara)}" class="kartu-chat">
+                        <div class="avatar-pengguna">${inisial}</div>
+                        <div class="detail-chat">
+                            <div class="atas-detail">
+                                <h3 class="nama-kontak">${emailLawanBicara.split('@')[0]}</h3>
+                                <span class="waktu-chat">${stringWaktu}</span>
+                            </div>
+                            <div class="bawah-detail">
+                                <p class="cuplikan-pesan">${prefixPesan}${pesanTerakhir.isi_pesan}</p>
+                            </div>
+                        </div>
+                    </a>
+                `;
+                
+                wadahInbox.innerHTML += htmlKartu;
+            });
+        }
+
+        // Jalankan saat halaman dimuat
+        cekLoginDanMuatPesan();
+    </script>
+</body>
+</html>
