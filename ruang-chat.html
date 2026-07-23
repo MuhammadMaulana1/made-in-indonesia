@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruang Chat - Made in Indonesia</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #e5ddd5; margin: 0; padding: 0; display: flex; justify-content: center; }
+        .wadah-chat { width: 100%; max-width: 600px; background: white; height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        
+        /* Header Chat */
+        .header { background-color: #007bff; color: white; padding: 15px; display: flex; align-items: center; position: sticky; top: 0; z-index: 10; }
+        .btn-kembali { color: white; text-decoration: none; font-size: 22px; margin-right: 15px; font-weight: bold; }
+        .info-lawan-bicara h2 { margin: 0; font-size: 16px; font-weight: bold; }
+        .info-lawan-bicara p { margin: 2px 0 0 0; font-size: 12px; opacity: 0.8; }
+
+        /* Area Pesan Utama */
+        .area-pesan { flex-grow: 1; padding: 20px; overflow-y: auto; background-color: #e5ddd5; display: flex; flex-direction: column; gap: 10px; }
+        
+        /* Gelembung Chat */
+        .gelembung { max-width: 75%; padding: 10px 15px; border-radius: 8px; font-size: 14px; line-height: 1.4; position: relative; word-wrap: break-word; }
+        .gelembung .waktu { display: block; font-size: 10px; color: #888; text-align: right; margin-top: 5px; }
+        
+        /* Pesan dari Saya (Kanan) */
+        .pesan-saya { align-self: flex-end; background-color: #dcf8c6; border-bottom-right-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        /* Pesan dari Lawan Bicara (Kiri) */
+        .pesan-dia { align-self: flex-start; background-color: white; border-bottom-left-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+
+        /* Footer (Input Pesan) */
+        .footer-input { background-color: #f0f0f0; padding: 10px 15px; display: flex; gap: 10px; align-items: center; }
+        .input-teks { flex-grow: 1; padding: 12px 15px; border: none; border-radius: 20px; font-size: 14px; outline: none; }
+        .btn-kirim { background-color: #007bff; color: white; border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; font-weight: bold; transition: 0.2s; }
+        .btn-kirim:hover { background-color: #0056b3; }
+        .btn-kirim:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* Sistem Informasi */
+        .pesan-sistem { text-align: center; font-size: 12px; background-color: rgba(255, 255, 255, 0.6); padding: 5px 10px; border-radius: 10px; align-self: center; color: #555; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="wadah-chat">
+        <!-- HEADER -->
+        <div class="header">
+            <a href="inbox.html" class="btn-kembali">←</a>
+            <div class="info-lawan-bicara">
+                <h2 id="nama-lawan">Memuat...</h2>
+                <p id="email-lawan">menghubungkan...</p>
+            </div>
+        </div>
+
+        <!-- AREA PESAN -->
+        <div class="area-pesan" id="area-pesan">
+            <div class="pesan-sistem">Memuat riwayat obrolan...</div>
+            <!-- Gelembung chat akan di-generate di sini oleh JS -->
+        </div>
+
+        <!-- INPUT PESAN -->
+        <div class="footer-input">
+            <input type="text" id="kolom-ketik" class="input-teks" placeholder="Ketik pesan di sini..." onkeypress="tekanEnter(event)">
+            <button class="btn-kirim" id="tombol-kirim" onclick="kirimPesan()">➤</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://obdmfjjckdhzqbvhpung.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M'; // PASTE KUNCI DI SINI YA!
+        const dbToko = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let emailUserAktif = "";
+        let emailLawanBicara = "";
+
+        async function inisialisasiChat() {
+            // 1. Cek Sesi Login
+            const { data: { session } } = await dbToko.auth.getSession();
+            if (!session) {
+                alert("Silakan login terlebih dahulu.");
+                window.location.replace("login.html");
+                return;
+            }
+            emailUserAktif = session.user.email;
+
+            // 2. Ambil target email dari URL (Misal: ruang-chat.html?target=penjual@gmail.com)
+            const urlParams = new URLSearchParams(window.location.search);
+            emailLawanBicara = urlParams.get('target');
+
+            if (!emailLawanBicara) {
+                alert("Target chat tidak ditemukan!");
+                window.location.replace("inbox.html");
+                return;
+            }
+
+            // 3. Tampilkan Info Header
+            document.getElementById('nama-lawan').innerText = emailLawanBicara.split('@')[0];
+            document.getElementById('email-lawan').innerText = emailLawanBicara;
+
+            // 4. Tarik Riwayat Chat
+            muatRiwayatPesan();
+        }
+
+        async function muatRiwayatPesan() {
+            const areaPesan = document.getElementById('area-pesan');
+
+            // Menarik pesan di mana pengirim dan penerimanya adalah 2 orang ini
+            const { data: pesan, error } = await dbToko
+                .from('pesan_chat')
+                .select('*')
+                .in('pengirim_email', [emailUserAktif, emailLawanBicara])
+                .in('penerima_email', [emailUserAktif, emailLawanBicara])
+                .order('created_at', { ascending: true }); // Ascending agar pesan lama di atas, baru di bawah
+
+            if (error) {
+                areaPesan.innerHTML = `<div class="pesan-sistem" style="color: red;">Gagal memuat pesan: ${error.message}</div>`;
+                return;
+            }
+
+            areaPesan.innerHTML = ""; // Bersihkan loading
+
+            if (pesan.length === 0) {
+                areaPesan.innerHTML = `<div class="pesan-sistem">Belum ada obrolan. Kirim pesan pertama kamu!</div>`;
+                return;
+            }
+
+            // Render setiap pesan ke layar
+            pesan.forEach(item => {
+                renderSatuGelembung(item);
+            });
+
+            scrollKeBawah();
+        }
+
+        function renderSatuGelembung(dataPesan) {
+            const areaPesan = document.getElementById('area-pesan');
+            
+            // Format waktu (Jam:Menit)
+            const waktu = new Date(dataPesan.created_at);
+            const stringWaktu = waktu.getHours().toString().padStart(2, '0') + ":" + waktu.getMinutes().toString().padStart(2, '0');
+
+            // Tentukan posisi gelembung (Saya = Kanan, Dia = Kiri)
+            const kelasGelembung = dataPesan.pengirim_email === emailUserAktif ? "pesan-saya" : "pesan-dia";
+
+            const htmlGelembung = `
+                <div class="gelembung ${kelasGelembung}">
+                    ${dataPesan.isi_pesan}
+                    <span class="waktu">${stringWaktu}</span>
+                </div>
+            `;
+            
+            // Hapus teks "Belum ada obrolan" jika ini pesan pertama yang dirender secara realtime
+            const pesanSistem = areaPesan.querySelector('.pesan-sistem');
+            if(pesanSistem && pesanSistem.innerText.includes("Belum ada obrolan")) {
+                pesanSistem.remove();
+            }
+
+            areaPesan.innerHTML += htmlGelembung;
+        }
+
+        async function kirimPesan() {
+            const inputTeks = document.getElementById('kolom-ketik');
+            const tombolKirim = document.getElementById('tombol-kirim');
+            const teks = inputTeks.value.trim();
+
+            if (teks === "") return;
+
+            // Matikan tombol sementara proses kirim
+            inputTeks.disabled = true;
+            tombolKirim.disabled = true;
+
+            const dataPesanBaru = {
+                pengirim_email: emailUserAktif,
+                penerima_email: emailLawanBicara,
+                isi_pesan: teks,
+                is_read: false
+            };
+
+            const { data, error } = await dbToko.from('pesan_chat').insert([dataPesanBaru]).select();
+
+            if (error) {
+                alert("Gagal mengirim pesan: " + error.message);
+            } else {
+                // Pesan berhasil masuk database, bersihkan kolom ketik dan render ke layar
+                inputTeks.value = "";
+                renderSatuGelembung(data[0]); // Render data kembalian dari Supabase
+                scrollKeBawah();
+            }
+
+            // Hidupkan kembali tombol
+            inputTeks.disabled = false;
+            tombolKirim.disabled = false;
+            inputTeks.focus();
+        }
+
+        // Fitur tekan tombol "Enter" di keyboard untuk mengirim
+        function tekanEnter(event) {
+            if (event.key === "Enter") {
+                kirimPesan();
+            }
+        }
+
+        // Fitur otomatis scroll ke pesan paling bawah (terbaru)
+        function scrollKeBawah() {
+            const areaPesan = document.getElementById('area-pesan');
+            areaPesan.scrollTop = areaPesan.scrollHeight;
+        }
+
+        inisialisasiChat();
+    </script>
+</body>
+</html>
