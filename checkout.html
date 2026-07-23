@@ -17,14 +17,16 @@
 
         label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; color: #333; font-size: 14px;}
         
-        /* Gaya baru untuk pilihan alamat */
         select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; background-color: #fff; cursor: pointer;}
         .kartu-alamat-terpilih { background: #fdfdfd; border: 1px dashed #007bff; padding: 15px; border-radius: 5px; margin-top: 10px; margin-bottom: 10px; font-size: 14px; color: #444; line-height: 1.5;}
         .link-tambah-alamat { display: block; text-align: right; color: #007bff; text-decoration: none; font-size: 13px; font-weight: bold; margin-bottom: 25px;}
         .link-tambah-alamat:hover { text-decoration: underline; }
         .pesan-error-alamat { background-color: #ffeeba; color: #856404; padding: 15px; border-radius: 5px; font-size: 14px; text-align: center; font-weight: bold; margin-top: 10px;}
 
-        .btn-pesan { display: block; width: 100%; text-align: center; background-color: #ff5722; color: white; padding: 15px; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 25px; transition: 0.2s;}
+        /* Gaya baru untuk input catatan pesanan */
+        textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; font-family: Arial, sans-serif; resize: vertical; margin-bottom: 10px;}
+
+        .btn-pesan { display: block; width: 100%; text-align: center; background-color: #ff5722; color: white; padding: 15px; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 15px; transition: 0.2s;}
         .btn-pesan:hover { background-color: #e64a19; }
         .btn-pesan:disabled { background-color: #cccccc; cursor: not-allowed; }
         .btn-kembali { display: block; text-align: center; margin-top: 15px; color: #007bff; text-decoration: none; font-size: 14px; font-weight: bold; }
@@ -42,7 +44,6 @@
             <div class="total-final" id="teks-total-bayar">Total: Rp 0</div>
         </div>
 
-        <!-- BAGIAN ALAMAT YANG DIPERBARUI -->
         <label>📍 Kirim ke Alamat:</label>
         <select id="pilih-alamat" onchange="perbaruiTampilanAlamat()">
             <option value="">Memuat daftar alamat...</option>
@@ -53,9 +54,11 @@
                 <!-- Detail alamat akan muncul di sini via JS -->
             </div>
         </div>
-        
         <a href="alamat.html" class="link-tambah-alamat">+ Kelola / Tambah Alamat Baru</a>
-        <!-- AKHIR BAGIAN ALAMAT -->
+
+        <!-- FITUR CATATAN BARU DI CHECKOUT -->
+        <label>📝 Pesan untuk Penjual/Kurir (Opsional):</label>
+        <textarea id="catatan-transaksi" rows="2" placeholder="Contoh: Titip di pos satpam, atau tolong di packing extra aman..."></textarea>
 
         <button class="btn-pesan" id="tombol-buat-pesanan" onclick="kirimPesananKeSistem()">Buat Pesanan Sekarang</button>
         <a href="keranjang.html" class="btn-kembali">← Kembali ke Keranjang</a>
@@ -71,8 +74,8 @@
         let teksRekapPesanan = "";
         let emailPembeliAktif = "";
         
-        let daftarAlamatUser = []; // Variabel untuk menyimpan data alamat dari Supabase
-        let alamatTerpilih = null; // Menyimpan objek alamat yang dipilih untuk dikirim ke tabel pesanan
+        let daftarAlamatUser = []; 
+        let alamatTerpilih = null; 
 
         async function muatDataCheckout() {
             const { data: { session } } = await dbToko.auth.getSession();
@@ -84,7 +87,6 @@
             
             emailPembeliAktif = session.user.email;
             
-            // Panggil laci keranjang dari nama kunci privat
             const kunciKeranjang = 'keranjang_' + emailPembeliAktif;
             keranjangSistem = JSON.parse(localStorage.getItem(kunciKeranjang)) || [];
             
@@ -109,16 +111,14 @@
             document.getElementById('teks-daftar-barang').innerText = htmlRekap;
             document.getElementById('teks-total-bayar').innerText = `Total Tagihan: Rp ${new Intl.NumberFormat('id-ID').format(totalBiayaSistem)}`;
             
-            // Setelah keranjang dimuat, langsung tarik data Buku Alamat
             tarikBukuAlamat();
         }
 
-        // FUNGSI BARU: Menarik data dari tabel alamat_user
         async function tarikBukuAlamat() {
             const { data, error } = await dbToko.from('alamat_user')
                 .select('*')
                 .eq('email_pemilik', emailPembeliAktif)
-                .order('is_utama', { ascending: false }); // Urutkan agar yang "Utama" selalu di index 0
+                .order('is_utama', { ascending: false }); 
 
             const selectEl = document.getElementById('pilih-alamat');
             const tombolPesan = document.getElementById('tombol-buat-pesanan');
@@ -133,42 +133,35 @@
             daftarAlamatUser = data;
 
             if (daftarAlamatUser.length === 0) {
-                // JIKA BELUM PUNYA ALAMAT SAMA SEKALI
                 selectEl.innerHTML = "<option value=''>-- Kamu belum menyimpan alamat --</option>";
                 selectEl.disabled = true;
                 wadahKartu.innerHTML = `<div class="pesan-error-alamat">⚠️ Kamu harus menambahkan alamat pengiriman terlebih dahulu sebelum bisa checkout. <br><br><a href="alamat.html" style="color: #856404; text-decoration: underline;">Klik di sini untuk membuat alamat</a></div>`;
-                tombolPesan.disabled = true; // Matikan tombol
+                tombolPesan.disabled = true; 
                 return;
             }
 
-            // JIKA ADA ALAMAT, Masukkan ke dalam dropdown
             selectEl.innerHTML = "";
             daftarAlamatUser.forEach((alamat, index) => {
                 let labelUtama = alamat.is_utama ? "[UTAMA] " : "";
                 selectEl.innerHTML += `<option value="${index}">${labelUtama}${alamat.label_alamat} - ${alamat.nama_penerima}</option>`;
             });
 
-            // Langsung tampilkan detail alamat teratas (index 0)
             perbaruiTampilanAlamat();
         }
 
-        // FUNGSI BARU: Mengubah tampilan kartu di bawah dropdown saat opsi dipilih
         function perbaruiTampilanAlamat() {
             const indexPilihan = document.getElementById('pilih-alamat').value;
             if (indexPilihan === "") return;
 
             alamatTerpilih = daftarAlamatUser[indexPilihan];
             
-            let catatanHtml = alamatTerpilih.catatan_kurir ? `<br><span style="color: #666; font-size: 12px;">📝 Catatan: ${alamatTerpilih.catatan_kurir}</span>` : '';
-            
+            // Catatan lama dari database alamat tidak ditampilkan lagi di sini
             document.getElementById('tampilan-detail-alamat').innerHTML = `
                 <strong>${alamatTerpilih.nama_penerima}</strong> (${alamatTerpilih.no_hp_penerima})<br>
                 ${alamatTerpilih.alamat_lengkap}
-                ${catatanHtml}
             `;
         }
 
-        // FUNGSI YANG DIPERBARUI: Mengirim pesanan menggunakan alamatTerpilih
         async function kirimPesananKeSistem() {
             if (!alamatTerpilih) {
                 alert("Silakan pilih alamat pengiriman terlebih dahulu!");
@@ -179,18 +172,21 @@
             tombol.innerText = "Memproses Pesananmu...";
             tombol.disabled = true;
 
-            // Gabungkan alamat lengkap dengan catatan (jika ada) agar penjual bisa membacanya di satu kolom database lama
-            let alamatFinalUntukPenjual = alamatTerpilih.alamat_lengkap;
-            if (alamatTerpilih.catatan_kurir) {
-                alamatFinalUntukPenjual += ` (Catatan: ${alamatTerpilih.catatan_kurir})`;
+            // Mengambil input catatan transaksi yang baru diketik
+            const catatanTransaksi = document.getElementById('catatan-transaksi').value.trim();
+            let rekapFinalUntukPenjual = teksRekapPesanan;
+            
+            // Jika pembeli mengisi catatan, tambahkan ke bawah daftar barang
+            if (catatanTransaksi !== "") {
+                rekapFinalUntukPenjual += `\n📝 CATATAN PEMBELI:\n${catatanTransaksi}`;
             }
 
             const { data, error } = await dbToko.from('pesanan').insert([
                 { 
                     nama_pembeli: alamatTerpilih.nama_penerima, 
                     no_whatsapp: alamatTerpilih.no_hp_penerima, 
-                    alamat_pengiriman: alamatFinalUntukPenjual,
-                    detail_pesanan: teksRekapPesanan,
+                    alamat_pengiriman: alamatTerpilih.alamat_lengkap, // Hanya mengirimkan alamat fisik
+                    detail_pesanan: rekapFinalUntukPenjual, // Barang + Catatan transaksi masuk ke sini
                     total_bayar: totalBiayaSistem,
                     status_pesanan: "Pesanan Baru",
                     email_pembeli: emailPembeliAktif
@@ -202,11 +198,10 @@
                 tombol.innerText = "Buat Pesanan Sekarang";
                 tombol.disabled = false;
             } else {
-                // HAPUS LACI PENYIMPANAN SETELAH SUKSES
                 const kunciKeranjang = 'keranjang_' + emailPembeliAktif;
                 localStorage.removeItem(kunciKeranjang); 
                 
-                alert("Pesanan Berhasil Dibuat! Penjual akan segera memproses barangmu.");
+                alert("Pesanan Berhasil Dibuat! Penjual akan segera memproses pesananmu.");
                 window.location.replace("index.html");
             }
         }
