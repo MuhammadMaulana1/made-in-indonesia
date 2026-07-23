@@ -9,20 +9,23 @@
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; }
         .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #333; }
+        h2 { text-align: center; color: #333; margin-bottom: 5px;}
+        .subtitle { text-align: center; color: #777; font-size: 14px; margin-top: 0; margin-bottom: 20px;}
         .back-btn { display: inline-block; margin-bottom: 20px; color: #007bff; text-decoration: none; font-weight: bold; }
         
         /* Form Styling */
         .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
-        input[type="text"], input[type="tel"], textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; font-size: 14px;}
+        input[type="text"], input[type="tel"], textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-family: Arial;}
         textarea { resize: vertical; height: 80px; }
         
-        /* Tombol */
-        .btn-gps { background-color: #ff9800; color: white; border: none; padding: 10px; width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
+        /* Tombol Form */
+        .btn-gps { background-color: #ff9800; color: white; border: none; padding: 10px; width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 10px; font-size: 14px;}
         .btn-gps:hover { background-color: #e68a00; }
-        .btn-submit { background-color: #28a745; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        .btn-submit { background-color: #28a745; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.2s;}
         .btn-submit:hover { background-color: #218838; }
+        .btn-batal { background-color: #6c757d; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; display: none;}
+        .btn-batal:hover { background-color: #5a6268; }
         
         /* Checkbox */
         .checkbox-group { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
@@ -30,21 +33,30 @@
 
         /* List Alamat */
         #daftar-alamat { margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px; }
-        .kartu-alamat { border: 1px solid #ddd; padding: 15px; border-radius: 5px; margin-bottom: 15px; background-color: #fafafa; }
-        .kartu-alamat h4 { margin: 0 0 5px 0; color: #007bff; }
-        .kartu-alamat p { margin: 5px 0; color: #444; font-size: 14px; }
-        .badge-utama { background-color: #dc3545; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-left: 10px; }
+        .kartu-alamat { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 15px; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);}
+        .kartu-utama-aktif { border: 2px solid #007bff; background-color: #f8fbff;}
+        .kartu-alamat h4 { margin: 0 0 8px 0; color: #333; font-size: 16px;}
+        .kartu-alamat p { margin: 5px 0; color: #555; font-size: 14px; line-height: 1.4;}
+        .badge-utama { background-color: #dc3545; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 10px; vertical-align: middle;}
+        
+        /* Tombol Aksi di Kartu */
+        .aksi-kartu { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #eee; display: flex; gap: 10px; flex-wrap: wrap;}
+        .btn-aksi { border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .btn-edit { background-color: #ffc107; color: #333; }
+        .btn-hapus { background-color: #dc3545; color: white; }
+        .btn-jadikan-utama { background-color: #17a2b8; color: white; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <a href="akun.html" class="back-btn">← Kembali ke Akun</a>
+    <a href="akun.html" class="back-btn">← Kembali ke Profil</a>
     <h2>Buku Alamat Pengiriman</h2>
+    <p class="subtitle">Kelola alamat untuk mempermudah proses belanjamu.</p>
 
-    <!-- Form Tambah Alamat -->
-    <div style="background-color: #f9f9ff; padding: 15px; border-radius: 8px; border: 1px dashed #007bff;">
-        <h3 style="margin-top: 0;">Tambah Alamat Baru</h3>
+    <!-- Form Tambah/Edit Alamat -->
+    <div style="background-color: #f9f9ff; padding: 20px; border-radius: 8px; border: 1px dashed #007bff;" id="area-form">
+        <h3 style="margin-top: 0; color: #007bff;" id="judul-form">Tambah Alamat Baru</h3>
         
         <div class="form-group">
             <label>Label Alamat (Misal: Rumah, Kantor)</label>
@@ -70,34 +82,37 @@
         <!-- Bagian GPS -->
         <div class="form-group">
             <label>Titik Koordinat (GPS)</label>
-            <button type="button" class="btn-gps" onclick="ambilLokasi()">📍 Gunakan Lokasi Saat Ini</button>
+            <button type="button" class="btn-gps" onclick="ambilLokasi()">📍 Tangkap Titik Lokasiku Saat Ini</button>
             <input type="text" id="titik_gps" placeholder="Klik tombol di atas untuk mengisi otomatis" readonly style="background-color: #e9ecef; cursor: not-allowed;">
         </div>
 
         <div class="checkbox-group">
             <input type="checkbox" id="is_utama">
-            <label for="is_utama" style="margin: 0;">Jadikan sebagai Alamat Utama</label>
+            <label for="is_utama" style="margin: 0; font-size: 15px;">Jadikan sebagai Alamat Utama</label>
         </div>
 
-        <button class="btn-submit" onclick="simpanAlamat()">Simpan Alamat</button>
+        <button class="btn-submit" id="btn-simpan-teks" onclick="simpanAlamat()">Simpan Alamat Baru</button>
+        <button class="btn-batal" id="btn-batal-edit" onclick="batalEdit()">Batal Edit</button>
     </div>
 
     <!-- Tempat Menampilkan Daftar Alamat -->
     <div id="daftar-alamat">
-        <h3>Alamat Tersimpan</h3>
-        <div id="loading-text">Memuat alamat...</div>
+        <h3 style="color: #333;">Daftar Alamat Tersimpan</h3>
+        <div id="loading-text" style="color: #777; font-style: italic;">Memuat daftar alamat...</div>
         <div id="list-container"></div>
     </div>
 </div>
 
 <script>
+    // 1. Inisialisasi Supabase
     const SUPABASE_URL = 'https://obdmfjjckdhzqbvhpung.supabase.co'; 
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M'; // JANGAN LUPA PASTE KUNCI DI SINI!
     
-    // PERBAIKAN: Kita ubah nama variabelnya menjadi supabaseClient agar tidak bentrok
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let emailUserSaatIni = "";
+    let dataAlamatGlobal = []; // Tempat menyimpan data sementara untuk ditarik saat tombol edit diklik
+    let idAlamatDiedit = null; // Penanda apakah kita sedang dalam mode edit atau mode tambah
 
     window.onload = async function() {
         const { data: { session } } = await supabaseClient.auth.getSession();
@@ -112,19 +127,16 @@
 
     function ambilLokasi() {
         const inputGps = document.getElementById('titik_gps');
-        inputGps.value = "Sedang mencari lokasi...";
+        inputGps.value = "Sedang mencari lokasi GPS...";
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 function(position) {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    inputGps.value = lat + ", " + lon;
-                    alert("Lokasi berhasil ditemukan!");
+                    inputGps.value = position.coords.latitude + ", " + position.coords.longitude;
                 },
                 function(error) {
                     inputGps.value = "";
-                    alert("Gagal mengambil lokasi. Pastikan kamu mengizinkan akses lokasi (GPS) di browsermu.");
+                    alert("Gagal mengambil lokasi. Pastikan kamu mengizinkan pop-up akses lokasi GPS di browsermu.");
                 }
             );
         } else {
@@ -133,49 +145,65 @@
     }
 
     async function simpanAlamat() {
-        const label = document.getElementById('label_alamat').value;
-        const nama = document.getElementById('nama_penerima').value;
-        const noHp = document.getElementById('no_hp_penerima').value;
-        const alamat = document.getElementById('alamat_lengkap').value;
-        const catatan = document.getElementById('catatan_kurir').value;
-        const gps = document.getElementById('titik_gps').value;
+        const label = document.getElementById('label_alamat').value.trim();
+        const nama = document.getElementById('nama_penerima').value.trim();
+        const noHp = document.getElementById('no_hp_penerima').value.trim();
+        const alamat = document.getElementById('alamat_lengkap').value.trim();
+        const catatan = document.getElementById('catatan_kurir').value.trim();
+        const gps = document.getElementById('titik_gps').value.trim();
         const isUtama = document.getElementById('is_utama').checked;
 
         if(!label || !nama || !noHp || !alamat) {
-            alert("Mohon lengkapi Label, Nama, No HP, dan Alamat Lengkap!");
+            alert("Form belum lengkap! Mohon isi Label, Nama, No HP, dan Alamat Lengkap.");
             return;
         }
 
-        const { data, error } = await supabaseClient
-            .from('alamat_user')
-            .insert([
-                { 
-                    email_pemilik: emailUserSaatIni, 
-                    label_alamat: label, 
-                    nama_penerima: nama, 
-                    no_hp_penerima: noHp, 
-                    alamat_lengkap: alamat, 
-                    catatan_kurir: catatan, 
-                    titik_gps: gps, 
-                    is_utama: isUtama 
-                }
-            ]);
+        // Menonaktifkan tombol sementara agar tidak diklik dua kali
+        document.getElementById('btn-simpan-teks').disabled = true;
+        document.getElementById('btn-simpan-teks').innerText = "Memproses...";
 
-        if (error) {
-            console.error("Error simpan:", error);
-            alert("Gagal menyimpan alamat: " + error.message);
-        } else {
-            alert("Alamat berhasil disimpan!");
-            document.getElementById('label_alamat').value = "";
-            document.getElementById('nama_penerima').value = "";
-            document.getElementById('no_hp_penerima').value = "";
-            document.getElementById('alamat_lengkap').value = "";
-            document.getElementById('catatan_kurir').value = "";
-            document.getElementById('titik_gps').value = "";
-            document.getElementById('is_utama').checked = false;
-            
-            tampilkanDaftarAlamat();
+        // LOGIKA ALAMAT UTAMA: 
+        // Jika form ini diset jadi "Utama", ubah semua alamat lain milik user ini menjadi "Bukan Utama" (false) terlebih dahulu.
+        if (isUtama) {
+            await supabaseClient.from('alamat_user')
+                .update({ is_utama: false })
+                .eq('email_pemilik', emailUserSaatIni);
         }
+
+        const dataForm = { 
+            email_pemilik: emailUserSaatIni, 
+            label_alamat: label, 
+            nama_penerima: nama, 
+            no_hp_penerima: noHp, 
+            alamat_lengkap: alamat, 
+            catatan_kurir: catatan, 
+            titik_gps: gps, 
+            is_utama: isUtama 
+        };
+
+        let hasilDatabase;
+
+        // Cek apakah mode Edit atau mode Tambah Baru
+        if (idAlamatDiedit) {
+            // Lakukan UPDATE karena kita sedang mengedit ID tertentu
+            hasilDatabase = await supabaseClient.from('alamat_user')
+                .update(dataForm)
+                .eq('id', idAlamatDiedit);
+        } else {
+            // Lakukan INSERT karena ini alamat baru
+            hasilDatabase = await supabaseClient.from('alamat_user')
+                .insert([dataForm]);
+        }
+
+        if (hasilDatabase.error) {
+            alert("Sistem gagal memproses alamat: " + hasilDatabase.error.message);
+        } else {
+            alert("Berhasil disimpan!");
+            batalEdit(); // Membersihkan form setelah selesai
+            tampilkanDaftarAlamat(); // Memuat ulang tampilan daftar
+        }
+
+        document.getElementById('btn-simpan-teks').disabled = false;
     }
 
     async function tampilkanDaftarAlamat() {
@@ -187,35 +215,126 @@
             .from('alamat_user')
             .select('*')
             .eq('email_pemilik', emailUserSaatIni)
-            .order('is_utama', { ascending: false });
+            .order('is_utama', { ascending: false }); // Yang "utama" akan otomatis berada di urutan paling atas
 
         document.getElementById('loading-text').style.display = 'none';
 
         if (error) {
             console.error("Error ambil data:", error);
+            listContainer.innerHTML = "<p style='color: red;'>Gagal menarik data dari server.</p>";
             return;
         }
 
+        // Menyimpan data ke variabel global agar bisa dipakai oleh tombol "Edit"
+        dataAlamatGlobal = data; 
+
         if (data.length === 0) {
-            listContainer.innerHTML = "<p style='color: gray; font-style: italic;'>Belum ada alamat tersimpan.</p>";
+            listContainer.innerHTML = "<p style='color: gray; font-style: italic; text-align: center;'>Kamu belum memiliki alamat tersimpan.</p>";
             return;
         }
 
         data.forEach(alamat => {
-            const badgeUtama = alamat.is_utama ? `<span class="badge-utama">Utama</span>` : '';
-            const titikGpsText = alamat.titik_gps ? `📍 ${alamat.titik_gps}` : '<i>Tidak ada titik GPS</i>';
+            const badgeUtama = alamat.is_utama ? `<span class="badge-utama">Alamat Utama</span>` : '';
+            const kelasKartu = alamat.is_utama ? 'kartu-alamat kartu-utama-aktif' : 'kartu-alamat';
+            const titikGpsText = alamat.titik_gps ? `📍 ${alamat.titik_gps}` : '<i>Belum ada titik GPS</i>';
             
+            // Logika Tombol Aksi
+            const tombolJadikanUtama = !alamat.is_utama ? `<button class="btn-aksi btn-jadikan-utama" onclick="setJadiUtama('${alamat.id}')">🌟 Jadikan Utama</button>` : '';
+            const tombolEdit = `<button class="btn-aksi btn-edit" onclick="masukModeEdit('${alamat.id}')">✏️ Edit</button>`;
+            const tombolHapus = `<button class="btn-aksi btn-hapus" onclick="hapusAlamat('${alamat.id}')">🗑️ Hapus</button>`;
+
             const cardHtml = `
-                <div class="kartu-alamat">
+                <div class="${kelasKartu}">
                     <h4>${alamat.label_alamat} ${badgeUtama}</h4>
-                    <p><strong>Penerima:</strong> ${alamat.nama_penerima} (${alamat.no_hp_penerima})</p>
+                    <p><strong>Penerima:</strong> ${alamat.nama_penerima} <br><strong>HP:</strong> ${alamat.no_hp_penerima}</p>
                     <p><strong>Alamat:</strong> ${alamat.alamat_lengkap}</p>
-                    <p style="color: #666;">📝 Catatan: ${alamat.catatan_kurir || '-'}</p>
-                    <p style="font-size: 12px; color: #007bff;">${titikGpsText}</p>
+                    <p style="color: #666; font-size: 13px;">📝 Catatan: ${alamat.catatan_kurir || '-'}</p>
+                    <p style="font-size: 12px; color: #007bff; margin-bottom: 0;">${titikGpsText}</p>
+                    
+                    <div class="aksi-kartu">
+                        ${tombolJadikanUtama}
+                        ${tombolEdit}
+                        ${tombolHapus}
+                    </div>
                 </div>
             `;
             listContainer.innerHTML += cardHtml;
         });
+    }
+
+    // --- FUNGSI MODE EDIT ---
+    function masukModeEdit(idTarget) {
+        // Cari data alamat spesifik berdasarkan ID
+        const alamat = dataAlamatGlobal.find(item => item.id == idTarget);
+        if (!alamat) return;
+
+        // Isi form dengan data lama
+        idAlamatDiedit = alamat.id;
+        document.getElementById('label_alamat').value = alamat.label_alamat;
+        document.getElementById('nama_penerima').value = alamat.nama_penerima;
+        document.getElementById('no_hp_penerima').value = alamat.no_hp_penerima;
+        document.getElementById('alamat_lengkap').value = alamat.alamat_lengkap;
+        document.getElementById('catatan_kurir').value = alamat.catatan_kurir || "";
+        document.getElementById('titik_gps').value = alamat.titik_gps || "";
+        document.getElementById('is_utama').checked = alamat.is_utama;
+
+        // Ubah tampilan form
+        document.getElementById('judul-form').innerText = "✏️ Mode Edit Alamat";
+        document.getElementById('btn-simpan-teks').innerText = "Perbarui Alamat";
+        document.getElementById('btn-simpan-teks').style.backgroundColor = "#ffc107";
+        document.getElementById('btn-simpan-teks').style.color = "#333";
+        document.getElementById('btn-batal-edit').style.display = "block";
+
+        // Scroll layar ke arah atas (ke arah form)
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function batalEdit() {
+        // Kosongkan form dan kembalikan ke mode tambah baru
+        idAlamatDiedit = null;
+        document.getElementById('label_alamat').value = "";
+        document.getElementById('nama_penerima').value = "";
+        document.getElementById('no_hp_penerima').value = "";
+        document.getElementById('alamat_lengkap').value = "";
+        document.getElementById('catatan_kurir').value = "";
+        document.getElementById('titik_gps').value = "";
+        document.getElementById('is_utama').checked = false;
+
+        document.getElementById('judul-form').innerText = "Tambah Alamat Baru";
+        document.getElementById('btn-simpan-teks').innerText = "Simpan Alamat Baru";
+        document.getElementById('btn-simpan-teks').style.backgroundColor = "#28a745";
+        document.getElementById('btn-simpan-teks').style.color = "white";
+        document.getElementById('btn-batal-edit').style.display = "none";
+    }
+
+    // --- FUNGSI JADIKAN UTAMA LANGSUNG ---
+    async function setJadiUtama(idTarget) {
+        // 1. Jadikan semua alamat pengguna ini "false" (bukan utama)
+        await supabaseClient.from('alamat_user')
+            .update({ is_utama: false })
+            .eq('email_pemilik', emailUserSaatIni);
+        
+        // 2. Jadikan satu alamat spesifik yang diklik ini menjadi "true" (utama)
+        const { error } = await supabaseClient.from('alamat_user')
+            .update({ is_utama: true })
+            .eq('id', idTarget);
+
+        if (!error) {
+            tampilkanDaftarAlamat(); // Muat ulang layar
+        }
+    }
+
+    // --- FUNGSI HAPUS ALAMAT ---
+    async function hapusAlamat(idTarget) {
+        const konfirmasi = confirm("Apakah kamu yakin ingin menghapus alamat ini?");
+        if (konfirmasi) {
+            const { error } = await supabaseClient.from('alamat_user').delete().eq('id', idTarget);
+            if (error) {
+                alert("Gagal menghapus: " + error.message);
+            } else {
+                tampilkanDaftarAlamat();
+            }
+        }
     }
 </script>
 
