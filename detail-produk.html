@@ -14,12 +14,33 @@
         
         h1 { margin: 0 0 5px 0; color: #333; font-size: 24px; }
         
-        /* GAYA BARU: TAUTAN NAMA TOKO */
         .nama-toko { font-size: 14px; color: #666; margin-bottom: 15px; display: block; }
         .link-toko { color: #007bff; text-decoration: none; transition: 0.2s; }
         .link-toko:hover { text-decoration: underline; color: #0056b3; }
 
-        .harga { color: #2ecc71; font-size: 26px; font-weight: bold; margin: 15px 0; }
+        /* --- GAYA BARU: TOMBOL CHAT PENJUAL --- */
+        .btn-chat {
+            background-color: #25d366;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s;
+            margin-bottom: 15px;
+        }
+        .btn-chat:hover { background-color: #1ebd57; }
+        #btn-chat-penjual { display: none; } /* Disembunyikan dulu sebelum dicek sistem */
+        /* -------------------------------------- */
+
+        .harga { color: #2ecc71; font-size: 26px; font-weight: bold; margin: 5px 0 15px 0; }
         
         .pilihan-varian p { margin: 15px 0 5px 0; font-weight: bold; font-size: 15px; color: #444; }
         .wadah-tombol-varian { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
@@ -137,13 +158,18 @@
 
             const namaToko = barang.email_penjual ? barang.email_penjual.split('@')[0] : 'Umum';
             const alamatEmailPemilik = barang.email_penjual || '#';
-
             const hargaFormat = new Intl.NumberFormat('id-ID').format(hargaAktif);
 
+            // MEMASUKKAN TOMBOL CHAT KE DALAM LAYAR
             wadah.innerHTML = `
                 ${htmlMedia}
                 <h1>${barang.nama_barang}</h1>
                 <span class="nama-toko">Oleh Toko: <a href="toko.html?email=${alamatEmailPemilik}" class="link-toko"><strong>${namaToko}</strong></a></span>
+                
+                <a href="#" id="btn-chat-penjual" class="btn-chat">
+                    💬 Chat Penjual
+                </a>
+
                 <div class="harga" id="harga-detail-layar">Rp ${hargaFormat}</div>
                 ${htmlVarian}
                 
@@ -165,6 +191,25 @@
                     <button class="btn-aksi btn-beli-langsung" onclick="aksiBeliLangsung()">Beli Langsung</button>
                 </div>
             `;
+
+            // --- LOGIKA BARU: MENGATUR TOMBOL CHAT ---
+            const btnChat = document.getElementById('btn-chat-penjual');
+            const emailPenjual = barang.email_penjual;
+            
+            // Cek sesi pengguna yang sedang login saat membuka produk ini
+            const { data: { session } } = await dbToko.auth.getSession();
+            const emailUserLogin = session ? session.user.email : null;
+
+            if (emailPenjual) {
+                // Atur link ke ruang chat
+                btnChat.href = `ruang-chat.html?target=${encodeURIComponent(emailPenjual)}`;
+                
+                // Jika yang membuka BUKAN si penjual produknya sendiri, tampilkan tombolnya
+                if (emailUserLogin !== emailPenjual) {
+                    btnChat.style.display = 'inline-flex';
+                }
+            }
+            // ------------------------------------------
         }
 
         function ubahKuantitasDiLayar(perubahan) {
@@ -196,7 +241,7 @@
 
         function ubahVarianDetail(tombol, hargaBaru, namaVarian) {
             const semuaTombol = tombol.parentElement.querySelectorAll('.tombol-varian');
-            semuaTombol.forEach(btn => btn.classList.remove('aktif'));
+            semuahTombol.forEach(btn => btn.classList.remove('aktif'));
             tombol.classList.add('aktif');
 
             hargaAktif = hargaBaru;
