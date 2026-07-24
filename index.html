@@ -83,7 +83,13 @@
         const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
         const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
         
+        // --- KONFIGURASI NAMA TABEL ---
+        const NAMA_TABEL_PROFIL = 'profile'; 
+        const KOLOM_NAMA_TOKO = 'nama_toko'; 
+        // ------------------------------
+
         let dataProdukGlobal = []; 
+        let kamusTokoGlobal = {}; 
 
         async function tampilkanProduk() {
             const wadahProduk = document.getElementById('daftar-produk');
@@ -112,7 +118,13 @@
                 document.getElementById('btn-inbox-utama').style.display = 'inline-block';
                 document.getElementById('btn-wishlist-utama').style.display = 'inline-block';
 
-                const namaTokoMenu = emailUserLogin.split('@')[0];
+                let namaTokoMenu = emailUserLogin.split('@')[0];
+
+                const { data: profilSaya } = await dbToko.from(NAMA_TABEL_PROFIL).select(KOLOM_NAMA_TOKO).eq('email', emailUserLogin).single();
+                if (profilSaya && profilSaya[KOLOM_NAMA_TOKO]) {
+                    namaTokoMenu = profilSaya[KOLOM_NAMA_TOKO];
+                }
+
                 wadahNavigasi.innerHTML = `
                     <div class="wadah-menu-login">
                         <span>Toko: <strong>${namaTokoMenu}</strong></span>
@@ -132,6 +144,24 @@
             if (data.length === 0) { wadahProduk.innerHTML = '<p>Belum ada barang yang dijual.</p>'; return; }
 
             dataProdukGlobal = data; 
+
+            const emailUnik = [...new Set(dataProdukGlobal.map(b => b.email_penjual).filter(email => email))];
+
+            if (emailUnik.length > 0) {
+                const { data: dataProfil } = await dbToko
+                    .from(NAMA_TABEL_PROFIL)
+                    .select(`email, ${KOLOM_NAMA_TOKO}`)
+                    .in('email', emailUnik);
+
+                if (dataProfil) {
+                    dataProfil.forEach(profil => {
+                        if (profil[KOLOM_NAMA_TOKO]) {
+                            kamusTokoGlobal[profil.email] = profil[KOLOM_NAMA_TOKO];
+                        }
+                    });
+                }
+            }
+
             renderProdukKeLayar(dataProdukGlobal);
         }
 
@@ -169,14 +199,18 @@
                     htmlMedia += '</div>';
                 }
 
-                const namaToko = barang.email_penjual ? barang.email_penjual.split('@')[0] : 'Umum';
+                let namaTokoAsli = kamusTokoGlobal[barang.email_penjual];
+                if (!namaTokoAsli) {
+                    namaTokoAsli = 'Penjual Anonim';
+                }
+
                 const alamatEmailPemilik = barang.email_penjual || '#'; 
 
                 const elemenProduk = `
                     <div class="kartu-produk" onclick="window.location.href='detail-produk.html?id=${barang.id}'">
                         ${htmlMedia}
                         <h2 style="margin-top: 0; margin-bottom: 2px; color:#333;">${barang.nama_barang}</h2>
-                        <span class="nama-toko-penjual">Toko: <a href="toko.html?email=${alamatEmailPemilik}" class="link-toko" onclick="event.stopPropagation()"><strong>${namaToko}</strong></a></span>
+                        <span class="nama-toko-penjual">Toko: <a href="toko.html?email=${alamatEmailPemilik}" class="link-toko" onclick="event.stopPropagation()"><strong>${namaTokoAsli}</strong></a></span>
                         <p class="harga">Rp ${hargaRupiahAwal}</p>
                         <a href="detail-produk.html?id=${barang.id}" class="tombol-detail">Lihat Detail & Beli</a>
                     </div>
@@ -189,8 +223,9 @@
             const kataKunci = document.getElementById('input-cari').value.toLowerCase();
             const hasilSaring = dataProdukGlobal.filter(barang => {
                 const namaBarang = barang.nama_barang.toLowerCase();
-                const namaToko = (barang.email_penjual ? barang.email_penjual.split('@')[0] : 'umum').toLowerCase();
-                return namaBarang.includes(kataKunci) || namaToko.includes(kataKunci);
+                let namaTokoAsli = kamusTokoGlobal[barang.email_penjual] || 'penjual anonim';
+                
+                return namaBarang.includes(kataKunci) || namaTokoAsli.toLowerCase().includes(kataKunci);
             });
             renderProdukKeLayar(hasilSaring);
         }
