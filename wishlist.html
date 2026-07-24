@@ -16,10 +16,12 @@
         .item-media { flex: 0 0 90%; height: 250px; object-fit: contain; border-radius: 5px; background-color: transparent; scroll-snap-align: center; }
         
         .harga { color: #2ecc71; font-size: 20px; font-weight: bold; margin: 5px 0 10px 0; }
-        .tombol-detail { display: block; text-align: center; background-color: #007bff; color: white; padding: 12px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px; }
+        
+        /* PERBAIKAN CSS TOMBOL: Disamakan bentuk, font, dan perataan tengahnya */
+        .tombol-detail { display: flex; align-items: center; justify-content: center; background-color: #007bff; color: white; padding: 12px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px; }
         .tombol-detail:hover { background-color: #0056b3; }
         
-        .btn-hapus-wishlist { background-color: #dc3545; color: white; border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 10px; }
+        .btn-hapus-wishlist { display: flex; align-items: center; justify-content: center; background-color: #dc3545; color: white; border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 14px; font-family: inherit; }
         .btn-hapus-wishlist:hover { background-color: #c82333; }
 
         .btn-kembali { margin-bottom: 20px; color: #007bff; text-decoration: none; font-weight: bold; text-align: left; float: left; }
@@ -48,7 +50,6 @@
         async function muatWishlist() {
             const wadah = document.getElementById('daftar-wishlist');
 
-            // 1. Cek sesi login
             const { data: { session } } = await dbToko.auth.getSession();
             if (!session) {
                 alert("Silakan login terlebih dahulu untuk melihat wishlist.");
@@ -58,7 +59,6 @@
 
             const emailUser = session.user.email;
 
-            // 2. Ambil data dari tabel wishlist_user berdasarkan email pembeli
             const { data: wishlistData, error: errorWishlist } = await dbToko
                 .from('wishlist_user')
                 .select('id_produk')
@@ -74,10 +74,8 @@
                 return;
             }
 
-            // Ambil semua id_produk ke dalam bentuk array
             const idProduks = wishlistData.map(item => item.id_produk);
 
-            // 3. Ambil detail produk dari tabel produk berdasarkan id_produk tersebut
             const { data: produkData, error: errorProduk } = await dbToko
                 .from('produk')
                 .select('*')
@@ -109,6 +107,7 @@
 
                 const namaToko = barang.email_penjual ? barang.email_penjual.split('@')[0] : 'Umum';
 
+                // PERBAIKAN WADAH TOMBOL: margin-top dipindahkan ke wadah pembungkus
                 const kartu = `
                     <div class="kartu-produk" id="kartu-${barang.id}" onclick="window.location.href='detail-produk.html?id=${barang.id}'">
                         ${htmlMedia}
@@ -116,8 +115,8 @@
                         <span style="font-size: 13px; color: #666; display: block; margin-bottom: 8px;">Toko: <strong>${namaToko}</strong></span>
                         <p class="harga">Rp ${hargaFormat}</p>
                         
-                        <div style="display: flex; gap: 10px;">
-                            <a href="detail-produk.html?id=${barang.id}" class="tombol-detail" style="flex: 2; margin-top:0;">Lihat Detail</a>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <a href="detail-produk.html?id=${barang.id}" class="tombol-detail" style="flex: 2;">Lihat Detail</a>
                             <button class="btn-hapus-wishlist" onclick="hapusDariWishlist('${barang.id}', event)" style="flex: 1;">Hapus ❌</button>
                         </div>
                     </div>
@@ -127,7 +126,7 @@
         }
 
         async function hapusDariWishlist(idProduk, event) {
-            event.stopPropagation(); // Mencegah kartu terbuka ke halaman detail saat tombol hapus diklik
+            event.stopPropagation();
             const konfirmasi = confirm("Hapus produk ini dari daftar Favorit?");
             if (!konfirmasi) return;
 
@@ -141,11 +140,9 @@
             if (error) {
                 alert("Gagal menghapus: " + error.message);
             } else {
-                // Hapus kartu dari layar secara instan
                 const elemenKartu = document.getElementById(`kartu-${idProduk}`);
                 if (elemenKartu) elemenKartu.remove();
 
-                // Jika daftar habis, tampilkan teks kosong
                 const wadah = document.getElementById('daftar-wishlist');
                 if (wadah.children.length === 0) {
                     wadah.innerHTML = `<div class="pesan-kosong">Belum ada barang di daftar favoritmu.<br>Yuk tandai barang lewat halaman detail produk!</div>`;
