@@ -29,15 +29,19 @@
         .link-toko { color: #007bff; text-decoration: none; transition: 0.2s; }
         .link-toko:hover { text-decoration: underline; color: #0056b3; }
         
-        .wadah-nav-aksi { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
-        .nav-aksi-kanan { display: flex; gap: 8px; } /* GAYA BARU: Wadah untuk menjajarkan tombol Pesan & Keranjang */
+        .wadah-nav-aksi { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        .nav-aksi-kanan { display: flex; gap: 8px; }
         
         .btn-keranjang-nav { background-color: #ff9800; color: white; text-decoration: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; font-size: 14px; }
         .btn-keranjang-nav:hover { background-color: #e65100; }
-
-        /* GAYA BARU: TOMBOL KOTAK MASUK */
         .btn-inbox-nav { background-color: #17a2b8; color: white; text-decoration: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; font-size: 14px; display: none; }
         .btn-inbox-nav:hover { background-color: #138496; }
+
+        /* GAYA BARU: KOTAK PENCARIAN */
+        .wadah-pencarian { margin-bottom: 20px; }
+        .input-cari { width: 100%; padding: 12px 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; transition: 0.3s; outline: none; }
+        .input-cari:focus { border-color: #007bff; box-shadow: 0 0 5px rgba(0,123,255,0.2); }
+        .pesan-pencarian-kosong { text-align: center; color: #777; font-style: italic; margin-top: 30px; padding: 20px; background: #fdfdfd; border: 1px dashed #ccc; border-radius: 8px;}
 
         #pesan-status { color: #666; font-style: italic; }
     </style>
@@ -56,11 +60,15 @@
         <div class="wadah-nav-aksi">
             <span style="font-size: 14px; color: #555;">Selamat Datang! Silakan Berbelanja</span>
             
-            <!-- UPDATE: Tombol Pesan dan Keranjang kini berjejer di kanan -->
             <div class="nav-aksi-kanan">
                 <a href="inbox.html" id="btn-inbox-utama" class="btn-inbox-nav">💬 Pesan</a>
                 <a href="keranjang.html" class="btn-keranjang-nav">🛒 Keranjang (<span id="angka-badge-nav">0</span>)</a>
             </div>
+        </div>
+
+        <!-- FITUR BARU: KOTAK PENCARIAN -->
+        <div class="wadah-pencarian">
+            <input type="text" id="input-cari" class="input-cari" placeholder="🔍 Cari nama barang atau nama toko..." onkeyup="saringProduk()" autocomplete="off">
         </div>
 
         <div id="daftar-produk">
@@ -73,6 +81,8 @@
         const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
         const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
         
+        let dataProdukGlobal = []; // Variabel untuk menyimpan semua data produk agar bisa disaring
+
         async function tampilkanProduk() {
             const wadahProduk = document.getElementById('daftar-produk');
             const wadahNavigasi = document.getElementById('navigasi-atas');
@@ -97,9 +107,7 @@
             hitungBadgeKeranjang(emailUserLogin); 
 
             if (emailUserLogin) {
-                // Tampilkan tombol Inbox jika user sudah login
                 document.getElementById('btn-inbox-utama').style.display = 'inline-block';
-
                 const namaTokoMenu = emailUserLogin.split('@')[0];
                 wadahNavigasi.innerHTML = `
                     <div class="wadah-menu-login">
@@ -114,14 +122,30 @@
                 wadahNavigasi.innerHTML = `<a href="login.html" class="link-jual">Masuk Toko / Jual Barang</a>`;
             }
 
+            // Menarik data dari database
             const { data, error } = await dbToko.from('produk').select('*').order('created_at', { ascending: false });
 
             if (error) { wadahProduk.innerHTML = '<p style="color:red;">Gagal memuat barang: ' + error.message + '</p>'; return; }
             if (data.length === 0) { wadahProduk.innerHTML = '<p>Belum ada barang yang dijual.</p>'; return; }
 
+            // Simpan ke variabel global untuk fitur pencarian
+            dataProdukGlobal = data; 
+            
+            // Tampilkan semua produk saat pertama kali halaman dimuat
+            renderProdukKeLayar(dataProdukGlobal);
+        }
+
+        // FUNGSI BARU: Untuk menampilkan HTML produk ke layar
+        function renderProdukKeLayar(daftarBarang) {
+            const wadahProduk = document.getElementById('daftar-produk');
             wadahProduk.innerHTML = '';
 
-            data.forEach(barang => {
+            if (daftarBarang.length === 0) {
+                wadahProduk.innerHTML = `<div class="pesan-pencarian-kosong">Barang yang kamu cari tidak ditemukan 😢<br><br>Coba gunakan kata kunci lain.</div>`;
+                return;
+            }
+
+            daftarBarang.forEach(barang => {
                 const hargaRupiahAwal = new Intl.NumberFormat('id-ID').format(barang.harga);
 
                 let htmlMedia = '';
@@ -160,6 +184,24 @@
                 `;
                 wadahProduk.innerHTML += elemenProduk;
             });
+        }
+
+        // FUNGSI BARU: Untuk menyaring produk berdasarkan ketikan di kolom pencarian
+        function saringProduk() {
+            // Ambil teks yang diketik pengguna dan ubah menjadi huruf kecil semua agar tidak sensitif huruf besar/kecil
+            const kataKunci = document.getElementById('input-cari').value.toLowerCase();
+            
+            // Saring array global
+            const hasilSaring = dataProdukGlobal.filter(barang => {
+                const namaBarang = barang.nama_barang.toLowerCase();
+                const namaToko = (barang.email_penjual ? barang.email_penjual.split('@')[0] : 'umum').toLowerCase();
+                
+                // Cek apakah kata kunci ada di nama barang ATAU di nama toko
+                return namaBarang.includes(kataKunci) || namaToko.includes(kataKunci);
+            });
+
+            // Tampilkan hasil saringan ke layar
+            renderProdukKeLayar(hasilSaring);
         }
 
         async function prosesKeluarHalamanUtama(event) {
