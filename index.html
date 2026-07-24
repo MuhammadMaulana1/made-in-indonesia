@@ -20,18 +20,24 @@
         
         .link-jual { display: inline-block; color: #007bff; text-decoration: none; font-weight: bold; padding: 10px 20px; border: 2px solid #007bff; border-radius: 5px; }
         .link-jual:hover { background-color: #007bff; color: white; }
+        
         .wadah-menu-login { background: #eaf2f8; padding: 12px; border-radius: 5px; font-size: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .btn-link-menu { color: #007bff; text-decoration: none; font-weight: bold; }
         .btn-keluar-menu { color: #dc3545; text-decoration: none; font-weight: bold; margin-left: 10px; }
         
-        /* GAYA BARU: TAUTAN NAMA TOKO YANG BISA DIKLIK */
         .nama-toko-penjual { font-size: 13px; color: #666; margin-top: 0; margin-bottom: 8px; display: block; }
         .link-toko { color: #007bff; text-decoration: none; transition: 0.2s; }
         .link-toko:hover { text-decoration: underline; color: #0056b3; }
         
         .wadah-nav-aksi { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        .nav-aksi-kanan { display: flex; gap: 8px; } /* GAYA BARU: Wadah untuk menjajarkan tombol Pesan & Keranjang */
+        
         .btn-keranjang-nav { background-color: #ff9800; color: white; text-decoration: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; font-size: 14px; }
         .btn-keranjang-nav:hover { background-color: #e65100; }
+
+        /* GAYA BARU: TOMBOL KOTAK MASUK */
+        .btn-inbox-nav { background-color: #17a2b8; color: white; text-decoration: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; font-size: 14px; display: none; }
+        .btn-inbox-nav:hover { background-color: #138496; }
 
         #pesan-status { color: #666; font-style: italic; }
     </style>
@@ -49,7 +55,12 @@
 
         <div class="wadah-nav-aksi">
             <span style="font-size: 14px; color: #555;">Selamat Datang! Silakan Berbelanja</span>
-            <a href="keranjang.html" class="btn-keranjang-nav">🛒 Keranjang (<span id="angka-badge-nav">0</span>)</a>
+            
+            <!-- UPDATE: Tombol Pesan dan Keranjang kini berjejer di kanan -->
+            <div class="nav-aksi-kanan">
+                <a href="inbox.html" id="btn-inbox-utama" class="btn-inbox-nav">💬 Pesan</a>
+                <a href="keranjang.html" class="btn-keranjang-nav">🛒 Keranjang (<span id="angka-badge-nav">0</span>)</a>
+            </div>
         </div>
 
         <div id="daftar-produk">
@@ -86,6 +97,9 @@
             hitungBadgeKeranjang(emailUserLogin); 
 
             if (emailUserLogin) {
+                // Tampilkan tombol Inbox jika user sudah login
+                document.getElementById('btn-inbox-utama').style.display = 'inline-block';
+
                 const namaTokoMenu = emailUserLogin.split('@')[0];
                 wadahNavigasi.innerHTML = `
                     <div class="wadah-menu-login">
@@ -133,9 +147,8 @@
                 }
 
                 const namaToko = barang.email_penjual ? barang.email_penjual.split('@')[0] : 'Umum';
-                const alamatEmailPemilik = barang.email_penjual || '#'; // Jaga-jaga jika produk belum ada emailnya
+                const alamatEmailPemilik = barang.email_penjual || '#'; 
 
-                // ELEMEN NAMA TOKO KINI BERUBAH MENJADI LINK KE toko.html
                 const elemenProduk = `
                     <div class="kartu-produk" onclick="window.location.href='detail-produk.html?id=${barang.id}'">
                         ${htmlMedia}
