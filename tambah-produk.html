@@ -54,7 +54,6 @@
 
         <button id="tombol-simpan" class="tombol-simpan" onclick="simpanData()">Simpan Barang & Media</button>
 
-        <!-- Arah pintu keluar dikembalikan ke halaman Kelola Produk -->
         <a href="produk-saya.html" class="kembali">← Kembali ke Kelola Produk</a>
     </div>
 
@@ -75,9 +74,17 @@
                 window.location.replace("login.html"); 
             } else {
                 emailPenjualAktif = session.user.email;
+
+                // --- FITUR BARU: SATPAM PENCEGAT PENJUAL ANONIM ---
+                const { data: cekProfil } = await dbToko.from('profile').select('nama_toko').eq('email', emailPenjualAktif).single();
+                if (!cekProfil || !cekProfil.nama_toko || cekProfil.nama_toko.trim() === "") {
+                    alert("Halo! Untuk mulai memajang barang, kamu wajib mengatur 'Nama Toko' terlebih dahulu di halaman Edit Profil.");
+                    window.location.replace("akun.html");
+                    return; // Mengunci form
+                }
+                // --------------------------------------------------
+
                 document.getElementById('wadah-utama').style.display = 'block';
-                
-                // Menjalankan pengecekan apakah ini mode Edit
                 cekModeEdit();
             }
         }
@@ -186,7 +193,6 @@
                 alert("Tolong isi semua data utama barang!"); return;
             }
 
-            // Jika barang baru, wajib ada foto. Jika edit, boleh kosong (berarti tidak ganti foto)
             if(!isEditMode && daftarFile.length === 0) {
                 alert("Silakan pilih minimal 1 foto/video untuk barang barumu!"); return;
             }
@@ -194,9 +200,8 @@
             tombol.innerText = `Memproses data...`;
             tombol.disabled = true;
 
-            let urlGabunganAkhir = urlFotoLama; // Secara default menggunakan foto lama
+            let urlGabunganAkhir = urlFotoLama; 
 
-            // Proses upload hanya dijalankan JIKA penjual memilih file baru
             if (daftarFile.length > 0) {
                 let kumpulanLink = [];
                 for(let i = 0; i < daftarFile.length; i++) {
@@ -213,7 +218,7 @@
                     const { data: linkMedia } = dbToko.storage.from('foto-barang').getPublicUrl(namaFileUnik);
                     kumpulanLink.push(linkMedia.publicUrl);
                 }
-                urlGabunganAkhir = kumpulanLink.join(','); // Timpa foto lama dengan foto baru
+                urlGabunganAkhir = kumpulanLink.join(','); 
             }
 
             const paketData = { 

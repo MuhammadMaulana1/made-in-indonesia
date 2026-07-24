@@ -61,7 +61,6 @@
 
         <div class="menu-grup">
             <button class="btn-menu btn-edit-profil" onclick="bukaPanelEdit()">⚙️ Edit Profil & Foto</button>
-            <!-- PERBAIKAN: Tombol alert diubah menjadi link ke alamat.html -->
             <a href="alamat.html" class="btn-menu btn-alamat">📍 Buku Alamat Pengiriman</a>
             <a href="produk-saya.html" class="btn-menu btn-kelola">📦 Kelola Produk Saya</a>
             <a href="index.html" class="btn-menu btn-etalase">🏪 Lihat Etalase Toko Utama</a>
@@ -73,42 +72,48 @@
     <div class="wadah-akun" id="panel-edit-profil">
         <h2 style="text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px;">Edit Profil Akun</h2>
         
-        <label>Foto Profil / Logo Toko</label>
-        <div class="grup-foto">
-            <input type="file" accept="image/*" id="input-foto-profil" style="flex: 1;">
-            <button class="btn-hapus-foto" onclick="hapusFotoSaja()" type="button">Hapus Foto</button>
-        </div>
-        <span class="info-teks">Pilih foto persegi agar hasil bundarnya rapi.</span>
+        <!-- MEMBUNGKUS INPUT DENGAN TAG FORM AGAR FITUR REQUIRED BERFUNGSI -->
+        <form id="form-edit-profil" onsubmit="simpanProfil(event)">
+            
+            <label>Foto Profil / Logo Toko</label>
+            <div class="grup-foto">
+                <input type="file" accept="image/*" id="input-foto-profil" style="flex: 1;">
+                <button class="btn-hapus-foto" onclick="hapusFotoSaja()" type="button">Hapus Foto</button>
+            </div>
+            <span class="info-teks">Pilih foto persegi agar hasil bundarnya rapi.</span>
 
-        <label>Nama Lengkap / Nama Toko</label>
-        <input type="text" id="input-nama-toko" placeholder="Contoh: Toko Maju Jaya">
-        <span class="info-teks">Nama ini yang akan dilihat oleh pengguna lain.</span>
+            <label>Nama Lengkap / Nama Toko <span style="color: red;">*</span></label>
+            <input type="text" id="input-nama-toko" placeholder="Contoh: Toko Maju Jaya" required>
+            <span class="info-teks">Nama ini yang akan dilihat oleh pengguna lain.</span>
 
-        <label>Username</label>
-        <input type="text" id="input-username" placeholder="Contoh: majujaya99">
-        <span class="info-teks">Gunakan huruf dan angka tanpa spasi (cth: @majujaya99).</span>
+            <label>Username <span style="color: red;">*</span></label>
+            <input type="text" id="input-username" placeholder="Contoh: majujaya99" required>
+            <span class="info-teks">Gunakan huruf dan angka tanpa spasi (cth: @majujaya99).</span>
 
-        <!-- FITUR DATA BARU -->
-        <label>Jenis Kelamin</label>
-        <select id="input-kelamin">
-            <option value="">-- Pilih Jenis Kelamin --</option>
-            <option value="Laki-laki">Laki-laki</option>
-            <option value="Perempuan">Perempuan</option>
-            <option value="Tidak Ingin Memberitahu">Tidak Ingin Memberitahu</option>
-        </select>
+            <label>Jenis Kelamin</label>
+            <select id="input-kelamin">
+                <option value="">-- Pilih Jenis Kelamin --</option>
+                <option value="Laki-laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
+                <option value="Tidak Ingin Memberitahu">Tidak Ingin Memberitahu</option>
+            </select>
 
-        <label>Nomor Handphone (Utama)</label>
-        <input type="number" id="input-nohp" placeholder="Contoh: 08123456789">
-        
-        <label>Tanggal Lahir</label>
-        <input type="date" id="input-tgllahir">
+            <label>Nomor Handphone (Utama)</label>
+            <input type="number" id="input-nohp" placeholder="Contoh: 08123456789">
+            
+            <label>Tanggal Lahir</label>
+            <input type="date" id="input-tgllahir">
 
-        <label>Bio Singkat</label>
-        <textarea id="input-bio" rows="3" maxlength="150" placeholder="Ceritakan singkat tentang dirimu atau tokomu... (Maks 150 huruf)"></textarea>
-        <span class="info-teks">Sisa huruf akan dibatasi otomatis oleh sistem maksimal 150 karakter.</span>
+            <label>Bio Singkat</label>
+            <textarea id="input-bio" rows="3" maxlength="150" placeholder="Ceritakan singkat tentang dirimu atau tokomu... (Maks 150 huruf)"></textarea>
+            <span class="info-teks">Sisa huruf akan dibatasi otomatis oleh sistem maksimal 150 karakter.</span>
 
-        <button class="btn-simpan-profil" id="tombol-simpan-profil" onclick="simpanProfil()">Simpan Perubahan</button>
-        <button class="btn-batal" onclick="tutupPanelEdit()">Batal Edit</button>
+            <!-- Tipe tombol diubah menjadi 'submit' -->
+            <button type="submit" class="btn-simpan-profil" id="tombol-simpan-profil">Simpan Perubahan</button>
+            <!-- Tipe tombol diubah menjadi 'button' agar tidak sengaja mensubmit form -->
+            <button type="button" class="btn-batal" onclick="tutupPanelEdit()">Batal Edit</button>
+
+        </form>
 
         <!-- BAGIAN KEAMANAN -->
         <div class="grup-keamanan">
@@ -124,7 +129,7 @@
         const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
 
         let emailPenggunaAktif = "";
-        let uidPenggunaAktif = ""; // Variabel penyimpan UID KTP
+        let uidPenggunaAktif = ""; 
         let fotoLama = "";
 
         async function muatDataAkun() {
@@ -137,7 +142,7 @@
             }
 
             emailPenggunaAktif = session.user.email;
-            uidPenggunaAktif = session.user.id; // Ini adalah nomor "KTP" bawaan Supabase
+            uidPenggunaAktif = session.user.id; 
             
             document.getElementById('email-aktif').innerText = emailPenggunaAktif;
             document.getElementById('user-id-tampil').innerText = "UID: " + uidPenggunaAktif;
@@ -148,7 +153,6 @@
                 document.getElementById('nama-tampil').innerText = profil.nama_toko || "Nama Belum Diatur";
                 document.getElementById('username-tampil').innerText = profil.username ? "@" + profil.username : "@" + emailPenggunaAktif.split('@')[0];
                 
-                // Isi form edit
                 document.getElementById('input-nama-toko').value = profil.nama_toko || "";
                 document.getElementById('input-username').value = profil.username || "";
                 document.getElementById('input-kelamin').value = profil.jenis_kelamin || "";
@@ -186,12 +190,15 @@
         }
 
         function hapusFotoSaja() {
-            fotoLama = ""; // Kosongkan variabel foto
-            document.getElementById('input-foto-profil').value = ""; // Bersihkan input file
+            fotoLama = ""; 
+            document.getElementById('input-foto-profil').value = ""; 
             alert("Foto ditandai untuk dihapus. Klik 'Simpan Perubahan' di bawah untuk menerapkan penghapusan foto secara permanen.");
         }
 
-        async function simpanProfil() {
+        // PERUBAHAN: Menangkap 'event' form submit
+        async function simpanProfil(event) {
+            event.preventDefault(); // Mencegah halaman reload otomatis bawaan form
+
             const namaBaru = document.getElementById('input-nama-toko').value.trim();
             const userBaru = document.getElementById('input-username').value.trim().replace(/\s+/g, '').toLowerCase(); 
             const kelaminBaru = document.getElementById('input-kelamin').value;
@@ -202,14 +209,9 @@
             const fileFoto = document.getElementById('input-foto-profil').files[0];
             const tombol = document.getElementById('tombol-simpan-profil');
 
-            if (namaBaru === "" || userBaru === "") {
-                alert("Nama Tampil dan Username tidak boleh kosong!");
-                return;
-            }
-
             tombol.innerText = "Menyimpan Data...";
             tombol.disabled = true;
-            let linkFotoAkhir = fotoLama; // Akan kosong jika tombol Hapus Foto diklik
+            let linkFotoAkhir = fotoLama; 
 
             if (fileFoto) {
                 const namaFileAman = Date.now() + "_" + emailPenggunaAktif.split('@')[0] + ".jpg";
@@ -225,7 +227,6 @@
                 linkFotoAkhir = linkMedia.publicUrl;
             }
 
-            // Menyimpan seluruh data termasuk UID bawaan dan form baru
             const { error } = await dbToko.from('profile').upsert({
                 email: emailPenggunaAktif,
                 user_id: uidPenggunaAktif,
@@ -234,7 +235,7 @@
                 foto_url: linkFotoAkhir,
                 jenis_kelamin: kelaminBaru,
                 nomor_hp: hpBaru,
-                tanggal_lahir: tglLahirBaru || null, // Tanggal tidak boleh kosong text biasa, harus null jika tidak diisi
+                tanggal_lahir: tglLahirBaru || null, 
                 bio: bioBaru
             }, { onConflict: 'email' });
 
@@ -253,7 +254,6 @@
             tombol.disabled = false;
         }
 
-        // --- FUNGSI GANTI EMAIL DENGAN VERIFIKASI PASSWORD LAMA ---
         async function gantiEmailProses() {
             const emailBaru = prompt("Masukkan alamat email barumu:");
             if (!emailBaru || emailBaru === "") return;
@@ -264,7 +264,6 @@
                 return;
             }
 
-            // 1. Verifikasi kecocokan password terlebih dahulu dengan mencoba login ulang (Re-authenticate)
             const { error: errorAuth } = await dbToko.auth.signInWithPassword({
                 email: emailPenggunaAktif,
                 password: passwordLama,
@@ -275,7 +274,6 @@
                 return;
             }
 
-            // 2. Jika password benar, jalankan perintah ganti email
             const { data, error: errorUpdate } = await dbToko.auth.updateUser({
                 email: emailBaru
             });

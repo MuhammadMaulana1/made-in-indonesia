@@ -19,7 +19,6 @@
         .tombol-varian.aktif { border-color: #007bff; color: #007bff; background: #ebf5ff; font-weight: bold; }
         .harga { color: #2ecc71; font-size: 20px; font-weight: bold; margin: 5px 0 15px 0; }
         
-        /* DESAIN BARU: TOMBOL TAMBAH, EDIT, DAN HAPUS */
         .btn-tambah-utama { display: block; width: 100%; text-align: center; background-color: #28a745; color: white; padding: 14px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-bottom: 20px; font-size: 16px; }
         .btn-tambah-utama:hover { background-color: #218838; }
         
@@ -43,7 +42,6 @@
             <h2 style="margin: 0; font-size: 18px; color: #333;">Kelola Dagangan</h2>
         </div>
 
-        <!-- TOMBOL TAMBAH BARANG DIPINDAHKAN KE SINI -->
         <a href="tambah-produk.html" class="btn-tambah-utama">➕ Tambah Produk Baru</a>
 
         <div id="daftar-produk-saya">
@@ -62,6 +60,15 @@
             if (!session) { window.location.replace("login.html"); return; }
             
             const emailUserLogin = session.user.email;
+
+            // --- FITUR BARU: SATPAM PENCEGAT PENJUAL ANONIM ---
+            const { data: cekProfil } = await dbToko.from('profile').select('nama_toko').eq('email', emailUserLogin).single();
+            if (!cekProfil || !cekProfil.nama_toko || cekProfil.nama_toko.trim() === "") {
+                alert("Halo! Untuk mulai mengelola produk jualan, kamu wajib mengatur 'Nama Toko' terlebih dahulu di halaman Edit Profil.");
+                window.location.replace("akun.html");
+                return; // Berhenti di sini, jangan tampilkan isi halaman
+            }
+            // --------------------------------------------------
 
             const { data, error } = await dbToko.from('produk').select('*').eq('email_penjual', emailUserLogin).order('created_at', { ascending: false });
 
@@ -130,7 +137,6 @@
                         ${tampilanStok}
                         <p class="harga" id="harga-${barang.id}">Rp ${hargaRupiahAwal}</p>
                         
-                        <!-- TOMBOL EDIT DAN HAPUS BERDAMPINGAN -->
                         <div class="grup-tombol-aksi">
                             <a href="tambah-produk.html?edit=${barang.id}" class="tombol-edit-produk">Edit Produk</a>
                             <button class="tombol-hapus-produk" onclick="hapusProdukSaya('${barang.id}', '${barang.nama_barang}')">Hapus</button>
@@ -144,7 +150,7 @@
         function pilihVarianSaya(elemenTombol, idProduk, hargaVarian) {
             const wadah = elemenTombol.parentElement;
             const semuaTombol = wadah.querySelectorAll('.tombol-varian');
-            semuaTombol.forEach(btn => btn.classList.remove('aktif'));
+            semuahTombol.forEach(btn => btn.classList.remove('aktif'));
             elemenTombol.classList.add('aktif');
 
             const hargaFormat = new Intl.NumberFormat('id-ID').format(hargaVarian);
