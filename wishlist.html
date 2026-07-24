@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Favorit Saya - Made in Indonesia</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 15px; text-align: center; }
+        .wadah-toko { width: 100%; max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .kartu-produk { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fafafa; margin-top: 20px; text-align: left; overflow: hidden; cursor: pointer; transition: 0.2s; position: relative; }
+        .kartu-produk:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-color: #bbb; }
+        
+        .galeri-media { display: flex; overflow-x: auto; gap: 10px; margin-bottom: 15px; padding-bottom: 5px; scroll-snap-type: x mandatory; }
+        .item-media { flex: 0 0 90%; height: 250px; object-fit: contain; border-radius: 5px; background-color: transparent; scroll-snap-align: center; }
+        
+        .harga { color: #2ecc71; font-size: 20px; font-weight: bold; margin: 5px 0 10px 0; }
+        .tombol-detail { display: block; text-align: center; background-color: #007bff; color: white; padding: 12px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px; }
+        .tombol-detail:hover { background-color: #0056b3; }
+        
+        .btn-hapus-wishlist { background-color: #dc3545; color: white; border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 10px; }
+        .btn-hapus-wishlist:hover { background-color: #c82333; }
+
+        .btn-kembali { margin-bottom: 20px; color: #007bff; text-decoration: none; font-weight: bold; text-align: left; float: left; }
+        .pesan-kosong { text-align: center; color: #777; font-style: italic; padding: 40px 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="wadah-toko">
+        <div style="overflow: hidden;">
+            <a href="index.html" class="btn-kembali">← Kembali ke Beranda</a>
+        </div>
+        <h1 style="margin-top: 5px;">❤️ Daftar Favorit Saya</h1>
+        <p style="color: #666; margin-bottom: 20px;">Barang-barang pilihan yang sudah kamu simpan.</p>
+
+        <div id="daftar-wishlist">
+            <p style="color: #666; font-style: italic;">Memuat daftar favorit...</p>
+        </div>
+    </div>
+
+    <script>
+        const URL_SUPABASE = 'https://obdmfjjckdhzqbvhpung.supabase.co';
+        const KUNCI_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZG1mampja2RoenFidmhwdW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjAwNTIsImV4cCI6MjA5ODYzNjA1Mn0.8zK13NJjFLopp3k5FmLn9Re88pFLiZPxV4RgPaEKj7M';
+        const dbToko = window.supabase.createClient(URL_SUPABASE, KUNCI_SUPABASE);
+
+        async function muatWishlist() {
+            const wadah = document.getElementById('daftar-wishlist');
+
+            // 1. Cek sesi login
+            const { data: { session } } = await dbToko.auth.getSession();
+            if (!session) {
+                alert("Silakan login terlebih dahulu untuk melihat wishlist.");
+                window.location.replace("login.html");
+                return;
+            }
+
+            const emailUser = session.user.email;
+
+            // 2. Ambil data dari tabel wishlist_user berdasarkan email pembeli
+            const { data: wishlistData, error: errorWishlist } = await dbToko
+                .from('wishlist_user')
+                .select('id_produk')
+                .eq('email_pembeli', emailUser);
+
+            if (errorWishlist) {
+                wadah.innerHTML = `<p style="color: red;">Gagal memuat wishlist: ${errorWishlist.message}</p>`;
+                return;
+            }
+
+            if (!wishlistData || wishlistData.length === 0) {
+                wadah.innerHTML = `<div class="pesan-kosong">Belum ada barang di daftar favoritmu.<br>Yuk tandai barang lewat halaman detail produk!</div>`;
+                return;
+            }
+
+            // Ambil semua id_produk ke dalam bentuk array
+            const idProduks = wishlistData.map(item => item.id_produk);
+
+            // 3. Ambil detail produk dari tabel produk berdasarkan id_produk tersebut
+            const { data: produkData, error: errorProduk } = await dbToko
+                .from('produk')
+                .select('*')
+                .in('id', idProduks);
+
+            if (errorProduk || !produkData || produkData.length === 0) {
+                wadah.innerHTML = `<div class="pesan-kosong">Daftar produk favorit kosong atau sudah dihapus oleh penjual.</div>`;
+                return;
+            }
+
+            wadah.innerHTML = "";
+
+            produkData.forEach(barang => {
+                const hargaFormat = new Intl.NumberFormat('id-ID').format(barang.harga);
+
+                let htmlMedia = '';
+                if (barang.foto_url) {
+                    const daftarLink = barang.foto_url.split(',');
+                    htmlMedia = '<div class="galeri-media">';
+                    daftarLink.forEach(link => {
+                        if (link.toLowerCase().match(/\.(mp4|mov|webm)$/i)) {
+                            htmlMedia += `<video src="${link}" class="item-media" controls preload="metadata" onclick="event.stopPropagation()"></video>`;
+                        } else {
+                            htmlMedia += `<img src="${link}" class="item-media" alt="${barang.nama_barang}">`;
+                        }
+                    });
+                    htmlMedia += '</div>';
+                }
+
+                const namaToko = barang.email_penjual ? barang.email_penjual.split('@')[0] : 'Umum';
+
+                const kartu = `
+                    <div class="kartu-produk" id="kartu-${barang.id}" onclick="window.location.href='detail-produk.html?id=${barang.id}'">
+                        ${htmlMedia}
+                        <h2 style="margin-top: 0; margin-bottom: 2px; color:#333;">${barang.nama_barang}</h2>
+                        <span style="font-size: 13px; color: #666; display: block; margin-bottom: 8px;">Toko: <strong>${namaToko}</strong></span>
+                        <p class="harga">Rp ${hargaFormat}</p>
+                        
+                        <div style="display: flex; gap: 10px;">
+                            <a href="detail-produk.html?id=${barang.id}" class="tombol-detail" style="flex: 2; margin-top:0;">Lihat Detail</a>
+                            <button class="btn-hapus-wishlist" onclick="hapusDariWishlist('${barang.id}', event)" style="flex: 1;">Hapus ❌</button>
+                        </div>
+                    </div>
+                `;
+                wadah.innerHTML += kartu;
+            });
+        }
+
+        async function hapusDariWishlist(idProduk, event) {
+            event.stopPropagation(); // Mencegah kartu terbuka ke halaman detail saat tombol hapus diklik
+            const konfirmasi = confirm("Hapus produk ini dari daftar Favorit?");
+            if (!konfirmasi) return;
+
+            const { data: { session } } = await dbToko.auth.getSession();
+            if (!session) return;
+
+            const { error } = await dbToko.from('wishlist_user')
+                .delete()
+                .match({ email_pembeli: session.user.email, id_produk: idProduk });
+
+            if (error) {
+                alert("Gagal menghapus: " + error.message);
+            } else {
+                // Hapus kartu dari layar secara instan
+                const elemenKartu = document.getElementById(`kartu-${idProduk}`);
+                if (elemenKartu) elemenKartu.remove();
+
+                // Jika daftar habis, tampilkan teks kosong
+                const wadah = document.getElementById('daftar-wishlist');
+                if (wadah.children.length === 0) {
+                    wadah.innerHTML = `<div class="pesan-kosong">Belum ada barang di daftar favoritmu.<br>Yuk tandai barang lewat halaman detail produk!</div>`;
+                }
+            }
+        }
+
+        muatWishlist();
+    </script>
+</body>
+</html>
